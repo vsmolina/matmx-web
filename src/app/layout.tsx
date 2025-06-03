@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import './globals.css'
 import type { Metadata } from 'next'
+import { Toaster } from 'react-hot-toast'
 
 export const metadata: Metadata = {
   title: 'MatMX - Industrial Supply Wholesaler',
@@ -14,7 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased bg-white text-black">{children}</body>
+      <body className="antialiased bg-white text-black">
+        {children}
+        <Toaster position="top-center" />
+      </body>
     </html>
   )
 }
