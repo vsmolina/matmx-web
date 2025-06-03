@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Pencil, Wrench } from 'lucide-react'
 import ProductModal from '@/components/ProductModal'
 import AdjustInventoryModal from './AdjustInventoryModal'
+import ExportCSVButton from './ExportCSVButton'
+import ImportCSVModal from './ImportCSVModal'
+import InventoryHistoryDialog from './InventoryHistoryDialog'
 import clsx from 'clsx'
 
 interface Product {
@@ -66,11 +69,16 @@ export default function InventoryTable() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-64"
         />
-        <ProductModal
-          mode="add"
-          onSave={fetchProducts}
-          trigger={<Button>Add Product</Button>}
-        />
+        <div className="flex items-center gap-2">
+          <ProductModal
+            mode="add"
+            onSave={fetchProducts}
+            trigger={<Button>Add Product</Button>}
+          />
+          <ExportCSVButton />
+          <ImportCSVModal onSuccess={fetchProducts} />
+        </div>
+
       </div>
 
       <div className="overflow-x-auto border rounded-lg">
@@ -124,6 +132,8 @@ export default function InventoryTable() {
                         </Button>
                     }
                   />
+                  <InventoryHistoryDialog productId={product.id} role={user?.role ?? ''} />
+
                 </td>
               </tr>
             ))}
