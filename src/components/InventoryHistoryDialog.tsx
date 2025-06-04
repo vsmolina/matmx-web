@@ -63,8 +63,8 @@ export default function InventoryHistoryDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-xs text-blue-700 hover:underline">
-          📜 History
+        <Button variant="outline" size="sm">
+          History
         </Button>
       </DialogTrigger>
 
@@ -84,9 +84,11 @@ export default function InventoryHistoryDialog({
               history.map((entry) => (
                 <div key={entry.id} className="relative">
                   <div className="absolute -left-[1.1rem] top-1 w-3 h-3 bg-blue-600 rounded-full" />
-                  <div className="text-xs text-gray-500">
-                    {format(new Date(entry.timestamp), 'MMM dd, yyyy hh:mm a')}
-                  </div>
+                  {entry.timestamp && (
+                    <div className="text-xs text-gray-500">
+                      {format(new Date(entry.timestamp), 'MMM dd, yyyy hh:mm a')}
+                    </div>
+                  )}
                   <div className="font-medium text-sm">{entry.user_name}</div>
                   <div className="text-sm">
                     Change: <span className="font-semibold">{entry.change > 0 ? `+${entry.change}` : entry.change}</span>{' '}

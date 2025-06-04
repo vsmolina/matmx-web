@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function ProductsPage() {
   return (
-    <AdminGuard>
+    <AdminGuard allowedRoles={['super_admin', 'inventory_manager']}>
       <main className="p-6">
         <h1 className="text-2xl font-semibold mb-4">Inventory Management</h1>
         <InventoryTable />

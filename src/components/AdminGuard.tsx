@@ -1,33 +1,27 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@/context/UserContext'
 
-export default function AdminGuard({ children }: { children: React.ReactNode }) {
-  const [loading, setLoading] = useState(true)
+interface AdminGuardProps {
+  children: React.ReactNode
+  allowedRoles?: string[] // Optional role restriction
+}
+
+export default function AdminGuard({ children, allowedRoles }: AdminGuardProps) {
   const router = useRouter()
+  const { user, loading } = useUser()
 
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch('http://localhost:4000/api/me', {
-          credentials: 'include',
-        })
-
-        if (!res.ok) {
-          router.replace('/admin/login')
-        } else {
-          setLoading(false)
-        }
-      } catch (err) {
+    if (!loading) {
+      if (!user || (allowedRoles && !allowedRoles.includes(user.role))) {
         router.replace('/admin/login')
       }
     }
+  }, [user, loading, allowedRoles, router])
 
-    checkAuth()
-  }, [router])
-
-  if (loading) {
+  if (loading || !user || (allowedRoles && !allowedRoles.includes(user.role))) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-gray-500">Checking admin access...</p>

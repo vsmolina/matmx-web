@@ -15,7 +15,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 
 import { Input } from '@/components/ui/input'
@@ -57,16 +56,20 @@ export default function AdjustInventoryModal({
     },
   })
 
-  const quantity = watch('quantity')
+  const quantityInput = watch('quantity')
 
-  const getFinalQuantity = () => {
-    return mode === 'relative'
-      ? currentStock + quantity
-      : quantity
-  }
+  const parsedQuantity = Number(quantityInput)
+  const finalQty = mode === 'relative'
+    ? currentStock + parsedQuantity
+    : parsedQuantity
+
+  const changeAmount = finalQty - currentStock
 
   const submitForm = async () => {
-    const finalQty = getFinalQuantity()
+    if (isNaN(parsedQuantity)) {
+      toast.error('Invalid quantity input')
+      return
+    }
 
     try {
       const res = await fetch(`http://localhost:4000/api/inventory/${productId}/adjust`, {
@@ -74,7 +77,7 @@ export default function AdjustInventoryModal({
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          change: finalQty - currentStock,
+          change: changeAmount,
           reason: watch('reason'),
           note: watch('note'),
         }),
@@ -93,7 +96,11 @@ export default function AdjustInventoryModal({
   }
 
   const handleSubmitWrapper = () => {
-    const finalQty = getFinalQuantity()
+    if (isNaN(parsedQuantity)) {
+      toast.error('Invalid quantity input')
+      return
+    }
+
     if (finalQty < 0) {
       setConfirmOpen(true)
     } else {
@@ -146,7 +153,7 @@ export default function AdjustInventoryModal({
             <Input {...register('note')} placeholder="Optional note" />
 
             <div className="text-sm text-gray-500">
-              Final Stock: <strong>{getFinalQuantity()}</strong>
+              Final Stock: <strong>{isNaN(finalQty) ? '–' : finalQty}</strong>
             </div>
 
             <Button type="submit" disabled={isSubmitting}>

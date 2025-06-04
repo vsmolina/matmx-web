@@ -118,7 +118,7 @@ export default function ManageUsersPage() {
       setName('')
       setEmail('')
       setPassword('')
-      setRole('sales_rep')
+      setRole('')
       setCreateModalOpen(false)
       fetchUsers()
     } else {
@@ -220,6 +220,7 @@ export default function ManageUsersPage() {
                 <SelectItem value="sales_rep">Sales Rep</SelectItem>
                 <SelectItem value="accountant">Accountant</SelectItem>
                 <SelectItem value="super_admin">Super Admin</SelectItem>
+                <SelectItem value='inventory_manager'>Inventory Manager</SelectItem>
               </SelectContent>
             </Select>
             <DialogFooter><Button type="submit">Create</Button></DialogFooter>

@@ -9,7 +9,9 @@ import AdjustInventoryModal from './AdjustInventoryModal'
 import ExportCSVButton from './ExportCSVButton'
 import ImportCSVModal from './ImportCSVModal'
 import InventoryHistoryDialog from './InventoryHistoryDialog'
+import ImportLogDialog from './ImportLogDialog'
 import clsx from 'clsx'
+import { useUser } from '@/context/UserContext'
 
 interface Product {
   id: number
@@ -24,10 +26,11 @@ interface Product {
 }
 
 export default function InventoryTable() {
+  const { user, loading } = useUser()
   const [products, setProducts] = useState<Product[]>([])
   const [filtered, setFiltered] = useState<Product[]>([])
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loadingData, setLoadingData] = useState(true)
 
   const fetchProducts = async () => {
     try {
@@ -40,13 +43,15 @@ export default function InventoryTable() {
     } catch (err) {
       console.error('Error fetching inventory:', err)
     } finally {
-      setLoading(false)
+      setLoadingData(false)
     }
   }
 
   useEffect(() => {
-    fetchProducts()
-  }, [])
+    if (!loading && user) {
+      fetchProducts()
+    }
+  }, [loading, user])
 
   useEffect(() => {
     const q = search.toLowerCase()
@@ -58,7 +63,8 @@ export default function InventoryTable() {
     setFiltered(f)
   }, [search, products])
 
-  if (loading) return <div className="p-4">Loading inventory...</div>
+  if (loading || loadingData) return <div className="p-4">Loading inventory...</div>
+  if (!user) return <div className="p-4">Unauthorized</div>
 
   return (
     <div className="p-4">
@@ -77,8 +83,8 @@ export default function InventoryTable() {
           />
           <ExportCSVButton />
           <ImportCSVModal onSuccess={fetchProducts} />
+          {user?.role === 'super_admin' && <ImportLogDialog />}
         </div>
-
       </div>
 
       <div className="overflow-x-auto border rounded-lg">
@@ -127,13 +133,15 @@ export default function InventoryTable() {
                     currentStock={product.stock}
                     onSave={fetchProducts}
                     trigger={
-                        <Button variant="outline" size="sm">
-                            <Wrench className="w-4 h-4" />
-                        </Button>
+                      <Button variant="outline" size="sm">
+                        <Wrench className="w-4 h-4" />
+                      </Button>
                     }
                   />
-                  <InventoryHistoryDialog productId={product.id} role={user?.role ?? ''} />
-
+                  <InventoryHistoryDialog
+                    productId={product.id}
+                    role={user.role}
+                  />
                 </td>
               </tr>
             ))}

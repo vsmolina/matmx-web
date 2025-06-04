@@ -2,34 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useUser } from '@/context/UserContext'
 import { Button } from '@/components/ui/button'
 import clsx from 'clsx'
-
-interface User {
-  userId: number
-  role: string
-  name: string
-  email?: string
-}
 
 export default function AdminNavbar() {
   const pathname = usePathname()
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-
-  useEffect(() => {
-    async function fetchUser() {
-      const res = await fetch('http://localhost:4000/api/me', {
-        credentials: 'include',
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setUser(data.user)
-      }
-    }
-    fetchUser()
-  }, [])
+  const { user, loading } = useUser()
 
   const handleLogout = async () => {
     const res = await fetch('http://localhost:4000/api/logout', {
@@ -42,11 +22,29 @@ export default function AdminNavbar() {
     }
   }
 
-  const links = [
-    { href: '/admin', label: 'Dashboard' },
-    { href: '/admin/users', label: 'Users' },
-    { href: '/admin/products', label: 'Products' },
-  ]
+  if (loading || !user) return null
+
+  const roleLinks = {
+    super_admin: [
+      { href: '/admin', label: 'Dashboard' },
+      { href: '/admin/users', label: 'Users' },
+      { href: '/admin/products', label: 'Products' },
+    ],
+    inventory_manager: [
+      { href: '/admin', label: 'Dashboard' },
+      { href: '/admin/products', label: 'Products' },
+    ],
+    accountant: [
+      { href: '/admin', label: 'Dashboard' },
+      { href: '/admin/products', label: 'Products' },
+    ],
+    sales_rep: [
+      { href: '/admin', label: 'Dashboard' },
+      { href: '/admin/products', label: 'Products' },
+    ],
+  }
+
+  const links = roleLinks[user.role] || []
 
   return (
     <nav className="bg-white border-b shadow-sm px-6 py-3 flex items-center justify-between">
@@ -66,15 +64,9 @@ export default function AdminNavbar() {
       </div>
 
       <div className="flex items-center gap-4 text-sm">
-        {user && (
-          <span className="text-gray-600">
-            {user && (
-                <span className="text-gray-600">
-                    Hi {user.name?.split(' ')[0] ?? 'Admin'}
-                </span>
-            )}
-          </span>
-        )}
+        <span className="text-gray-600">
+          Hi {user.name?.split(' ')[0] ?? 'Admin'}
+        </span>
         <Button variant="outline" onClick={handleLogout}>
           Logout
         </Button>
