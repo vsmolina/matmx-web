@@ -29,6 +29,7 @@ export default function AdminNavbar() {
       { href: '/admin', label: 'Dashboard' },
       { href: '/admin/users', label: 'Users' },
       { href: '/admin/products', label: 'Products' },
+      { href: '/admin/crm', label: "Customers"},
     ],
     inventory_manager: [
       { href: '/admin', label: 'Dashboard' },
@@ -41,6 +42,7 @@ export default function AdminNavbar() {
     sales_rep: [
       { href: '/admin', label: 'Dashboard' },
       { href: '/admin/products', label: 'Products' },
+      { href: '/admin/crm', label: "Customers"},
     ],
   }
 
