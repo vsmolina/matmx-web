@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useUser } from '@/context/UserContext'
 import { Button } from '@/components/ui/button'
 import clsx from 'clsx'
-import { Menu } from 'lucide-react'
+import { Menu, Warehouse } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 
 export default function AdminNavbar() {
@@ -33,12 +33,16 @@ export default function AdminNavbar() {
       { href: '/admin', label: 'Dashboard' },
       { href: '/admin/users', label: 'Users' },
       { href: '/admin/products', label: 'Products' },
+      { href: '/admin/vendors', label: 'Vendors' },
       { href: '/admin/crm', label: 'Customers' },
       { href: '/admin/sales', label: 'Quotes & Orders' },
+      { href: '/admin/receiving', label: 'Receiving'},
     ],
     inventory_manager: [
       { href: '/admin', label: 'Dashboard' },
       { href: '/admin/products', label: 'Products' },
+      { href: '/admin/vendors', label: 'Vendors' },
+      { href: '/admin/receiving', label: 'Receiving'},
     ],
     accountant: [
       { href: '/admin', label: 'Dashboard' },
@@ -50,10 +54,18 @@ export default function AdminNavbar() {
       { href: '/admin/products', label: 'Products' },
       { href: '/admin/crm', label: 'Customers' },
       { href: '/admin/sales', label: 'Quotes & Orders' },
+      { href: '/admin/receiving', label: 'Receiving'},
     ],
+    warehouse_worker: [
+      { href: '/admin/receiving', label: 'Receiving'},
+    ]
   }
 
-  const links = roleLinks[user.role] || []
+  const validRoles = ['super_admin', 'inventory_manager', 'accountant', 'sales_rep', 'warehouse_worker'] as const
+  type Role = typeof validRoles[number]
+
+  const role = user.role as Role
+  const links = roleLinks[role] || []
 
   // Automatically close menu on route change
   useEffect(() => {

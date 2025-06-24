@@ -81,7 +81,7 @@ export default function QuoteDetailsDialog({
 
   if (!quote) return null
 
-  const total = quote.items.reduce((sum, item) => sum + item.total_price, 0)
+  const total = quote.items.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0)
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

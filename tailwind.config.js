@@ -6,6 +6,15 @@ module.exports = {
   ],
   theme: {
   	extend: {
+		keyframes: {
+			'scanner-line': {
+			'0%, 100%': { transform: 'translateY(0%)' },
+			'50%': { transform: 'translateY(-100%)' },
+			},
+		},
+		animation: {
+			'scanner-line': 'scanner-line 2s ease-in-out infinite',
+		},
   		colors: {
   			brand: '#003cc5',
   			black: '#000000',

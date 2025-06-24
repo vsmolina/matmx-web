@@ -1,13 +1,16 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import GenerateOrViewOrderPDFButton from './GenerateOrViewOrderPDFButton'
+import SendOrderEmailButton from './SendOrderEmailButton'
 
 interface Order {
   id: number
   customer_name: string
+  customer_email: string
   status: string
   fulfillment_date: string | null
-  total: number
+  total: number | string | null
   shipping_method?: string
 }
 
@@ -17,6 +20,11 @@ interface OrderCardProps {
 }
 
 export default function OrderCard({ order, onView }: OrderCardProps) {
+  const total =
+    typeof order.total === 'number'
+      ? order.total
+      : parseFloat(order.total as string || '0')
+
   return (
     <div className="bg-white shadow rounded-xl p-4 space-y-2">
       <div className="flex justify-between items-center">
@@ -27,10 +35,12 @@ export default function OrderCard({ order, onView }: OrderCardProps) {
         <p><span className="font-semibold">Customer:</span> {order.customer_name}</p>
         <p><span className="font-semibold">Shipping:</span> {order.shipping_method || '—'}</p>
         <p><span className="font-semibold">Fulfilled:</span> {order.fulfillment_date?.slice(0, 10) || '—'}</p>
-        <p><span className="font-semibold">Total:</span> ${order.total.toFixed(2)}</p>
+        <p><span className="font-semibold">Total:</span> ${total.toFixed(2)}</p>
       </div>
-      <div className="pt-2">
-        <Button onClick={() => onView(order.id)} className="w-full">View</Button>
+      <div className="flex justify-between gap-2 pt-2">
+        <Button onClick={() => onView(order.id)} className="flex-1">View</Button>
+        <GenerateOrViewOrderPDFButton orderId={order.id} />
+        <SendOrderEmailButton orderId={order.id} customerEmail={order.customer_email} />
       </div>
     </div>
   )

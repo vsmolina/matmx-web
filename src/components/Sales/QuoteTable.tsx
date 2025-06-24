@@ -3,36 +3,48 @@
 import { Button } from '@/components/ui/button'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import QuoteCard from './QuoteCard'
+import SendQuoteEmailButton from './SendQuoteEmailButton'
+import GenerateOrViewPDFButton from './GenerateOrViewPDFButton'
+import toast from 'react-hot-toast'
 
 interface Quote {
   id: number
   title?: string
   customer_name: string
+  customer_email: string
   rep_name: string
   status: string
   valid_until?: string
   delivery_date?: string
-  total?: number
+  total?: number | string | null
 }
 
 interface QuoteTableProps {
   quotes: Quote[]
   onView: (quoteId: number) => void
   onConvert: (quoteId: number) => void
-  onEmail: (quoteId: number) => void
-  onUpload: (quoteId: number) => void
-  onClose?: (quoteId: number) => void
 }
 
 export default function QuoteTable({
   quotes,
   onView,
-  onConvert,
-  onEmail,
-  onUpload,
-  onClose
+  onConvert
 }: QuoteTableProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
+
+  const handleConvert = async (quoteId: number) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/sales/quotes/${quoteId}/convert`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      if (!res.ok) throw new Error()
+      toast.success('Quote converted to order')
+      onConvert(quoteId)
+    } catch (err) {
+      toast.error('Failed to convert quote')
+    }
+  }
 
   if (isMobile) {
     return (
@@ -42,7 +54,6 @@ export default function QuoteTable({
             key={quote.id}
             quote={quote}
             onView={onView}
-            onClose={onClose}
           />
         ))}
       </div>
@@ -66,29 +77,29 @@ export default function QuoteTable({
           </tr>
         </thead>
         <tbody>
-          {quotes.map((quote) => (
-            <tr key={quote.id} className="border-t hover:bg-gray-50">
-              <td className="px-4 py-2">{quote.id}</td>
-              <td className="px-4 py-2">{quote.title || '—'}</td>
-              <td className="px-4 py-2">{quote.customer_name}</td>
-              <td className="px-4 py-2">{quote.rep_name}</td>
-              <td className="px-4 py-2 capitalize">{quote.status}</td>
-              <td className="px-4 py-2">{quote.valid_until?.slice(0, 10)}</td>
-              <td className="px-4 py-2">{quote.delivery_date?.slice(0, 10)}</td>
-              <td className="px-4 py-2 text-right">
-                {typeof quote.total === 'number' ? `$${quote.total.toFixed(2)}` : '—'}
-              </td>
-              <td className="px-4 py-2 text-right space-x-1">
-                <Button size="sm" variant="outline" onClick={() => onView(quote.id)}>View</Button>
-                <Button size="sm" variant="ghost" onClick={() => onEmail(quote.id)}>Email</Button>
-                <Button size="sm" variant="ghost" onClick={() => onConvert(quote.id)}>Convert</Button>
-                <Button size="sm" variant="ghost" onClick={() => onUpload(quote.id)}>Upload</Button>
-                {onClose && (
-                  <Button size="sm" variant="ghost" onClick={() => onClose(quote.id)}>Close</Button>
-                )}
-              </td>
-            </tr>
-          ))}
+          {quotes.map((quote) => {
+            const total = typeof quote.total === 'number'
+              ? quote.total
+              : parseFloat(quote.total as string || '0')
+            return (
+              <tr key={quote.id} className="border-t hover:bg-gray-50">
+                <td className="px-4 py-2">{quote.id}</td>
+                <td className="px-4 py-2">{quote.title || '—'}</td>
+                <td className="px-4 py-2">{quote.customer_name}</td>
+                <td className="px-4 py-2">{quote.rep_name}</td>
+                <td className="px-4 py-2 capitalize">{quote.status}</td>
+                <td className="px-4 py-2">{quote.valid_until?.slice(0, 10)}</td>
+                <td className="px-4 py-2">{quote.delivery_date?.slice(0, 10)}</td>
+                <td className="px-4 py-2 text-right">${total.toFixed(2)}</td>
+                <td className="px-4 py-2 text-right space-x-1">
+                  <Button size="sm" variant="outline" onClick={() => onView(quote.id)}>View</Button>
+                  <GenerateOrViewPDFButton quoteId={quote.id} />
+                  <SendQuoteEmailButton quoteId={quote.id} customerEmail={quote.customer_email} />
+                  <Button size="sm" variant="ghost" onClick={() => handleConvert(quote.id)}>Convert</Button>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>

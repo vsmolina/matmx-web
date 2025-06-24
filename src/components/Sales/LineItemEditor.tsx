@@ -83,7 +83,7 @@ export default function LineItemEditor({ items, onItemsChange }: LineItemEditorP
           </div>
           <div>
             <Label>Total</Label>
-            <Input value={item.total_price.toFixed(2)} disabled />
+            <Input value={Number(item.total_price).toFixed(2)} disabled />
           </div>
           <Button variant="ghost" size="sm" onClick={() => removeItem(i)}>Remove</Button>
         </div>

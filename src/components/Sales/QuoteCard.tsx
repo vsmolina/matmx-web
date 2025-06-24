@@ -2,16 +2,19 @@
 
 import { Button } from '@/components/ui/button'
 import { X } from 'lucide-react'
+import SendQuoteEmailButton from './SendQuoteEmailButton'
+import GenerateOrViewPDFButton from './GenerateOrViewPDFButton'
 
 interface Quote {
   id: number
   title?: string
   customer_name: string
+  customer_email: string
   rep_name: string
   status: string
   valid_until?: string
   delivery_date?: string
-  total?: number
+  total?: number | string | null
 }
 
 interface QuoteCardProps {
@@ -21,6 +24,11 @@ interface QuoteCardProps {
 }
 
 export default function QuoteCard({ quote, onView, onClose }: QuoteCardProps) {
+  const total =
+    typeof quote.total === 'number'
+      ? quote.total
+      : parseFloat(quote.total as string || '0')
+
   return (
     <div className="bg-white shadow rounded-xl p-4 space-y-2 relative">
       <div className="flex justify-between items-center">
@@ -36,11 +44,13 @@ export default function QuoteCard({ quote, onView, onClose }: QuoteCardProps) {
         <p><span className="font-semibold">Rep:</span> {quote.rep_name}</p>
         <p><span className="font-semibold">Valid Until:</span> {quote.valid_until?.slice(0, 10) || '—'}</p>
         <p><span className="font-semibold">Delivery:</span> {quote.delivery_date?.slice(0, 10) || '—'}</p>
-        <p><span className="font-semibold">Total:</span> {typeof quote.total === 'number' ? `$${quote.total.toFixed(2)}` : '—'}</p>
+        <p><span className="font-semibold">Total:</span> ${total.toFixed(2)}</p>
       </div>
 
-      <div className="pt-2">
+      <div className="pt-2 space-y-2">
         <Button onClick={() => onView(quote.id)} className="w-full">View</Button>
+        <GenerateOrViewPDFButton quoteId={quote.id} />
+        <SendQuoteEmailButton quoteId={quote.id} customerEmail={quote.customer_email} />
       </div>
     </div>
   )

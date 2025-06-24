@@ -5,32 +5,32 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Pencil, Wrench } from 'lucide-react'
 import ProductModal from '@/components/ProductModal'
-import AdjustInventoryModal from './AdjustInventoryModal'
 import ExportCSVButton from './ExportCSVButton'
 import ImportCSVModal from './ImportCSVModal'
 import InventoryHistoryDialog from './InventoryHistoryDialog'
 import ImportLogDialog from './ImportLogDialog'
 import clsx from 'clsx'
 import { useUser } from '@/context/UserContext'
+import { useRouter } from 'next/navigation'
 
-interface Product {
-  id: number
+interface ProductVendorStock {
+  product_id: number
   name: string
   sku: string
   vendor: string
-  stock: number
+  vendor_id: number
+  quantity: number
   reorder_threshold: number
-  unit_price: number
   category: string
-  notes?: string
 }
 
 export default function InventoryTable() {
   const { user, loading } = useUser()
-  const [products, setProducts] = useState<Product[]>([])
-  const [filtered, setFiltered] = useState<Product[]>([])
+  const [rows, setRows] = useState<ProductVendorStock[]>([])
+  const [filtered, setFiltered] = useState<ProductVendorStock[]>([])
   const [search, setSearch] = useState('')
   const [loadingData, setLoadingData] = useState(true)
+  const router = useRouter();
 
   const fetchProducts = async () => {
     try {
@@ -38,7 +38,7 @@ export default function InventoryTable() {
         credentials: 'include',
       })
       const data = await res.json()
-      setProducts(data.products)
+      setRows(data.products)
       setFiltered(data.products)
     } catch (err) {
       console.error('Error fetching inventory:', err)
@@ -55,13 +55,14 @@ export default function InventoryTable() {
 
   useEffect(() => {
     const q = search.toLowerCase()
-    const f = products.filter(
+    const f = rows.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q)
+        p.sku.toLowerCase().includes(q) ||
+        p.vendor.toLowerCase().includes(q)
     )
     setFiltered(f)
-  }, [search, products])
+  }, [search, rows])
 
   if (loading || loadingData) return <div className="p-4">Loading inventory...</div>
   if (!user) return <div className="p-4">Unauthorized</div>
@@ -70,7 +71,7 @@ export default function InventoryTable() {
     <div className="p-4">
       <div className="mb-4 flex justify-between items-center">
         <Input
-          placeholder="Search by name or SKU..."
+          placeholder="Search by name, SKU, or vendor..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-64"
@@ -94,52 +95,37 @@ export default function InventoryTable() {
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">SKU</th>
               <th className="px-4 py-2">Vendor</th>
-              <th className="px-4 py-2">Stock</th>
+              <th className="px-4 py-2">Quantity</th>
               <th className="px-4 py-2">Reorder Level</th>
               <th className="px-4 py-2">Category</th>
               <th className="px-4 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((product) => (
+            {filtered.map((row) => (
               <tr
-                key={product.id}
+                key={`${row.product_id}-${row.vendor_id}`}
                 className={clsx(
                   'border-t',
-                  product.stock < product.reorder_threshold
-                    ? 'bg-red-50'
-                    : ''
+                  row.quantity < row.reorder_threshold ? 'bg-red-50' : ''
                 )}
               >
-                <td className="px-4 py-2">{product.name}</td>
-                <td className="px-4 py-2">{product.sku}</td>
-                <td className="px-4 py-2">{product.vendor}</td>
-                <td className="px-4 py-2">{product.stock}</td>
-                <td className="px-4 py-2">{product.reorder_threshold}</td>
-                <td className="px-4 py-2">{product.category}</td>
+                <td className="px-4 py-2">{row.name}</td>
+                <td className="px-4 py-2">{row.sku}</td>
+                <td className="px-4 py-2">{row.vendor}</td>
+                <td className="px-4 py-2">{row.quantity}</td>
+                <td className="px-4 py-2">{row.reorder_threshold}</td>
+                <td className="px-4 py-2">{row.category}</td>
                 <td className="px-4 py-2 space-x-2">
-                  <ProductModal
-                    mode="edit"
-                    defaultValues={product}
-                    onSave={fetchProducts}
-                    trigger={
-                      <Button variant="outline" size="sm">
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                    }
-                  />
-                  <AdjustInventoryModal
-                    productId={product.id}
-                    currentStock={product.stock}
-                    onSave={fetchProducts}
-                    trigger={
-                      <Button variant="outline" size="sm">
-                        <Wrench className="w-4 h-4" />
-                      </Button>
-                    }
-                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/admin/products/${row.product_id}`)}
+                  >
+                    Details
+                  </Button>
                   <InventoryHistoryDialog
-                    productId={product.id}
+                    productId={row.product_id}
                     role={user.role}
                   />
                 </td>
