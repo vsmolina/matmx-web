@@ -1,47 +1,87 @@
 'use client'
 
+import { Order } from '@/types/OrderTypes'
 import { Button } from '@/components/ui/button'
-import GenerateOrViewOrderPDFButton from './GenerateOrViewOrderPDFButton'
-import SendOrderEmailButton from './SendOrderEmailButton'
+import OrderDetailsDialog from './OrderDetailsDialog'
+import { useState } from 'react'
+import { formatDate } from '@/lib/date'
+import { toast } from 'react-hot-toast'
 
-interface Order {
-  id: number
-  customer_name: string
-  customer_email: string
-  status: string
-  fulfillment_date: string | null
-  total: number | string | null
-  shipping_method?: string
-}
+type FulfillmentStatus = 'draft' | 'received' | 'packed' | 'fulfilled'
 
-interface OrderCardProps {
+export default function OrderCard({
+  order,
+  onUpdated
+}: {
   order: Order
-  onView: (orderId: number) => void
-}
+  onUpdated: () => void
+}) {
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [status, setStatus] = useState<FulfillmentStatus>(order.status)
 
-export default function OrderCard({ order, onView }: OrderCardProps) {
-  const total =
-    typeof order.total === 'number'
-      ? order.total
-      : parseFloat(order.total as string || '0')
+  const updateStatus = async (newStatus: FulfillmentStatus) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/sales/orders/${order.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          status: newStatus,
+          fulfillment_date: newStatus === 'fulfilled' ? new Date().toISOString() : null
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to update order')
+
+      toast.success(`Order marked as ${newStatus}`)
+      setStatus(newStatus)
+      onUpdated()
+    } catch (err) {
+      console.error(err)
+      toast.error('Could not update status')
+    }
+  }
 
   return (
-    <div className="bg-white shadow rounded-xl p-4 space-y-2">
-      <div className="flex justify-between items-center">
-        <h3 className="font-bold">Order #{order.id}</h3>
-        <span className="text-sm capitalize text-muted-foreground">{order.status}</span>
+    <div className="border rounded-lg p-4 shadow-sm bg-white space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Order #{order.id}</h2>
+          <p className="text-sm text-muted-foreground">{order.customer_name}</p>
+          <p className="text-sm text-muted-foreground">
+            Total: ${Number(order.total).toFixed(2)}
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <select
+            className="border px-2 py-1 rounded text-sm"
+            value={status}
+            onChange={(e) => updateStatus(e.target.value as FulfillmentStatus)}
+          >
+            <option value="received">Received</option>
+            <option value="packed">Packed</option>
+            <option value="fulfilled">Fulfilled</option>
+          </select>
+
+          <Button size="sm" variant="outline" onClick={() => setDetailsOpen(true)}>
+            View
+          </Button>
+        </div>
       </div>
-      <div className="text-sm">
-        <p><span className="font-semibold">Customer:</span> {order.customer_name}</p>
-        <p><span className="font-semibold">Shipping:</span> {order.shipping_method || '—'}</p>
-        <p><span className="font-semibold">Fulfilled:</span> {order.fulfillment_date?.slice(0, 10) || '—'}</p>
-        <p><span className="font-semibold">Total:</span> ${total.toFixed(2)}</p>
-      </div>
-      <div className="flex justify-between gap-2 pt-2">
-        <Button onClick={() => onView(order.id)} className="flex-1">View</Button>
-        <GenerateOrViewOrderPDFButton orderId={order.id} />
-        <SendOrderEmailButton orderId={order.id} customerEmail={order.customer_email} />
-      </div>
+
+      {status === 'fulfilled' && order.fulfillment_date && (
+        <p className="text-sm text-green-700">
+          Fulfilled on {formatDate(order.fulfillment_date)}
+        </p>
+      )}
+
+      <OrderDetailsDialog
+        orderId={order.id}
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        onUpdated={onUpdated}
+      />
     </div>
   )
 }

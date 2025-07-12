@@ -56,7 +56,7 @@ export default function ProductProfilePage() {
         credentials: 'include'
       })
       const data = await res.json()
-      setVendorTerms(data.terms)
+      setVendorTerms(data)
     } catch (err) {
       console.error(err)
     }
@@ -75,24 +75,51 @@ export default function ProductProfilePage() {
 
   return (
     <main className="p-6">
+      <Button variant="outline" onClick={() => router.push('/admin/products')}>
+        ← Back to Products
+      </Button>
       <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
       <div className="text-gray-600 mb-4">SKU: {product.sku}</div>
 
-      {product.image_path && (
-        <Image
-          src={product.image_path}
-          alt={product.name}
-          width={300}
-          height={300}
-          className="rounded mb-4"
-        />
-      )}
+      <div className="flex items-start gap-6 mb-6">
+        <div>
+          {product.image_path ? (
+            <Image
+              src={product.image_path}
+              alt={product.name}
+              width={250}
+              height={250}
+              className="rounded border mb-2"
+            />
+          ) : (
+            <div className="w-[250px] h-[250px] bg-gray-100 flex items-center justify-center text-gray-500 rounded border mb-2">
+              No image
+            </div>
+          )}
+          <form
+            onChange={async (e) => {
+              const file = (e.target as HTMLInputElement).files?.[0]
+              if (!file) return
+              const formData = new FormData()
+              formData.append('image', file)
+              const res = await fetch(`http://localhost:4000/api/inventory/${product.id}/image`, {
+                method: 'POST',
+                credentials: 'include',
+                body: formData,
+              })
+              if (res.ok) fetchProduct()
+            }}
+          >
+            <input type="file" accept="image/*" className="text-sm" />
+          </form>
+        </div>
 
-      <div className="text-sm mb-6">
-        <p><strong>Category:</strong> {product.category}</p>
-        <p><strong>Reorder Threshold:</strong> {product.reorder_threshold}</p>
-        <p><strong>Unit Price:</strong> ${product.unit_price.toFixed(2)}</p>
-        <p><strong>Notes:</strong> {product.notes || 'None'}</p>
+        <div className="text-sm flex-1 space-y-2">
+          <p><strong>Category:</strong> {product.category}</p>
+          <p><strong>Reorder Threshold:</strong> {product.reorder_threshold}</p>
+          <p><strong>Unit Price:</strong> ${Number(product.unit_price).toFixed(2)}</p>
+          <p><strong>Notes:</strong> {product.notes || 'None'}</p>
+        </div>
       </div>
 
       <div className="mb-6">
@@ -112,7 +139,7 @@ export default function ProductProfilePage() {
             {vendorTerms.map((term) => (
               <tr key={term.vendor_id} className="border-t">
                 <td className="px-3 py-2">{term.vendor_name}</td>
-                <td className="px-3 py-2">${term.unit_price.toFixed(2)}</td>
+                <td className="px-3 py-2">${Number(term.unit_price).toFixed(2)}</td>
                 <td className="px-3 py-2">{term.lead_time_days} days</td>
                 <td className="px-3 py-2">{term.payment_terms}</td>
                 <td className="px-3 py-2">{term.notes || '—'}</td>
@@ -137,6 +164,21 @@ export default function ProductProfilePage() {
           </tbody>
         </table>
       </div>
+      {product.id && (
+        <div className="w-full flex justify-center mt-10">
+          <img
+            src={`http://localhost:4000/api/inventory/${product.id}/barcode.png`}
+            alt="Barcode"
+            className="border bg-white p-2"
+            width={300}
+            height={80}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement
+              target.alt = 'Barcode not available'
+            }}
+          />
+        </div>
+      )}
     </main>
   )
 }

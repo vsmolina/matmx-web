@@ -22,9 +22,11 @@ export default function EmailQuoteDialog({ quoteId }: EmailQuoteDialogProps) {
   const handleSend = async () => {
     setSending(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/sales/quotes/${quoteId}/email`, {
+      const res = await fetch(`http://localhost:4000/api/email/send`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'quote', id: quoteId })
       })
 
       if (!res.ok) throw new Error()

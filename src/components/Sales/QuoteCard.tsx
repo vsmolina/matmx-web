@@ -4,18 +4,7 @@ import { Button } from '@/components/ui/button'
 import { X } from 'lucide-react'
 import SendQuoteEmailButton from './SendQuoteEmailButton'
 import GenerateOrViewPDFButton from './GenerateOrViewPDFButton'
-
-interface Quote {
-  id: number
-  title?: string
-  customer_name: string
-  customer_email: string
-  rep_name: string
-  status: string
-  valid_until?: string
-  delivery_date?: string
-  total?: number | string | null
-}
+import { Quote } from '@/types/QuoteTypes'
 
 interface QuoteCardProps {
   quote: Quote

@@ -2,6 +2,7 @@ export interface Product {
   id: number
   name: string
   sku: string
+  vendor_id: number
   vendor: string
   stock: number
   reorder_threshold: number

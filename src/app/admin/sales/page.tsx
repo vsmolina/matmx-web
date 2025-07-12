@@ -1,101 +1,109 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import SalesHeader from '@/components/Sales/SalesHeader'
-import SalesStatsCards from '@/components/Sales/SalesStatsCards'
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import SalesTabSwitcher from '@/components/Sales/SalesTabSwitcher'
 import QuoteTable from '@/components/Sales/QuoteTable'
 import OrderTable from '@/components/Sales/OrderTable'
 import CreateQuoteDialog from '@/components/Sales/CreateQuoteDialog'
-import QuoteDetailsDialog from '@/components/Sales/QuoteDetailsDialog'
-import OrderDetailsDialog from '@/components/Sales/OrderDetailsDialog'
-import { useSalesData } from '@/hooks/useSalesData'
-import { useSalesStats } from '@/hooks/useSalesStats'
+import FulfilledOrdersDialog from '@/components/Sales/FulfilledOrderDialog'
+import SalesHeader from '@/components/Sales/SalesHeader'
+import { Quote } from '@/types/QuoteTypes'
+import { Order } from '@/types/OrderTypes'
 
 export default function SalesPage() {
-  const [activeTab, setActiveTab] = useState<'quotes' | 'orders'>('quotes')
-  const [quotes, setQuotes] = useState<any[]>([])
-  const [filter, setFilter] = useState({
+  const [tab, setTab] = useState<'quotes' | 'orders'>('quotes')
+  const [quotes, setQuotes] = useState<Quote[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
+  const [reloadKey, setReloadKey] = useState(0)
+  const [showCreate, setShowCreate] = useState(false)
+  const [showFulfilled, setShowFulfilled] = useState(false)
+
+  const [filter, setFilter] = useState<{
+    customer: string
+    status: string
+    repId: string
+    startDate?: string
+    endDate?: string
+  }>({
     customer: '',
     status: 'all',
-    repId: 'all'
+    repId: 'all',
+    startDate: undefined,
+    endDate: undefined
   })
 
-  const [reloadKey, setReloadKey] = useState(0)
-  const { data, loading, error } = useSalesData(activeTab, filter, reloadKey)
-  const { stats } = useSalesStats()
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [dialogType, setDialogType] = useState<null | 'view'>(null)
-  const triggerReload = () => setReloadKey(prev => prev + 1)
+  const fetchData = async () => {
+    const query = new URLSearchParams({
+      customer: filter.customer,
+      status: filter.status,
+      repId: filter.repId,
+      startDate: filter.startDate || '',
+      endDate: filter.endDate || ''
+    }).toString()
+
+    const [quoteRes, orderRes] = await Promise.all([
+      fetch(`http://localhost:4000/api/sales/quotes?${query}`, { credentials: 'include' }),
+      fetch(`http://localhost:4000/api/sales/orders?${query}`, { credentials: 'include' })
+    ])
+    const quoteData = await quoteRes.json()
+    const orderData = await orderRes.json()
+    console.log('Fetched orders', orderData.orders)
+    setQuotes(quoteData.quotes || [])
+    setOrders(orderData.orders || [])
+  }
 
   useEffect(() => {
-    if (activeTab === 'quotes' && Array.isArray(data)) {
-      setQuotes(data)
-    }
-  }, [data, activeTab])
+    fetchData()
+  }, [reloadKey, filter])
 
-  const handleFilterChange = (newFilter: typeof filter) => {
-    setFilter(newFilter)
-    setReloadKey(prev => prev + 1)
-  }
 
-  const openDialog = (type: typeof dialogType, id: number) => {
-    setSelectedId(id)
-    setDialogType(type)
-  }
-
-  const closeDialog = () => {
-    setDialogType(null)
-    setSelectedId(null)
-  }
-
-  const handleQuoteConverted = (quoteId: number) => {
-    setQuotes(prev => prev.filter(q => q.id !== quoteId))
-    setActiveTab('orders')
-    triggerReload()
-  }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Sales Dashboard</h1>
-        {activeTab === 'quotes' && <CreateQuoteDialog onCreated={triggerReload} />}
+    <div className="p-4 space-y-6">
+      {/* Tabs and action buttons */}
+      <div className="flex justify-end items-center">
+        <div className="flex gap-2 ">
+          {tab === 'orders' && (
+            <Button variant="outline" onClick={() => setShowFulfilled(true)}>
+              View Fulfilled Orders
+            </Button>
+          )}
+          <Button onClick={() => setShowCreate(true)}>Create Quote</Button>
+        </div>
       </div>
 
-      <SalesHeader filter={filter} onFilterChange={handleFilterChange} />
-      <SalesStatsCards stats={stats} />
-      <SalesTabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Filters */}
+      <SalesHeader filter={filter} onFilterChange={setFilter} />
+      <SalesTabSwitcher activeTab={tab} onTabChange={setTab} />
 
-      {activeTab === 'quotes' ? (
+      {/* Tables */}
+      {tab === 'quotes' && (
         <QuoteTable
           quotes={quotes}
-          onView={(id) => openDialog('view', id)}
-          onConvert={handleQuoteConverted}
+          onView={() => {}}
+          onConvert={() => setReloadKey((k) => k + 1)}
         />
-      ) : (
+      )}
+
+      {tab === 'orders' && (
         <OrderTable
-          orders={data}
-          onView={(id) => openDialog('view', id)}
+          orders={orders}
+          onUpdated={() => setReloadKey((k) => k + 1)}
         />
       )}
 
-      {activeTab === 'quotes' && dialogType === 'view' && selectedId && (
-        <QuoteDetailsDialog
-          quoteId={selectedId}
-          open={true}
-          onClose={closeDialog}
-          onUpdated={triggerReload}
-        />
-      )}
+      {/* Modals */}
+      <CreateQuoteDialog
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={() => setReloadKey((k) => k + 1)}
+      />
 
-      {activeTab === 'orders' && dialogType === 'view' && selectedId && (
-        <OrderDetailsDialog
-          orderId={selectedId}
-          open={true}
-          onClose={closeDialog}
-          onUpdated={() => {}}
-        />
-      )}
+      <FulfilledOrdersDialog
+        open={showFulfilled}
+        onClose={() => setShowFulfilled(false)}
+      />
     </div>
   )
 }

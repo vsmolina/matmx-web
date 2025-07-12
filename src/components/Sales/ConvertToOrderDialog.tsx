@@ -1,61 +1,94 @@
 'use client'
 
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { toast } from 'react-hot-toast'
 
-interface ConvertToOrderDialogProps {
+export default function ConvertToOrderDialog({
+  open,
+  onClose,
+  quoteId,
+  onConverted
+}: {
+  open: boolean
+  onClose: () => void
   quoteId: number
-  onConverted: (orderId: number) => void
-}
-
-export default function ConvertToOrderDialog({ quoteId, onConverted }: ConvertToOrderDialogProps) {
-  const [open, setOpen] = useState(false)
+  onConverted: () => void
+}) {
+  const [status, setStatus] = useState('received')
+  const [shippingMethod, setShippingMethod] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleConvert = async () => {
+  const handleSubmit = async () => {
+    if (!shippingMethod.trim()) {
+      toast.error('Please enter a shipping method')
+      return
+    }
+
     setLoading(true)
+
     try {
-      const res = await fetch(`http://localhost:4000/api/sales/quotes/${quoteId}/convert`, {
+      const res = await fetch(`/api/sales/quotes/${quoteId}/convert`, {
         method: 'POST',
-        credentials: 'include'
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          shipping_method: shippingMethod,
+          status,
+        }),
       })
 
-      if (!res.ok) throw new Error()
-      const data = await res.json()
+      if (!res.ok) {
+        throw new Error('Failed to convert quote')
+      }
+
       toast.success('Quote converted to order')
-      onConverted(data.order_id)
-      setOpen(false)
-    } catch {
-      toast.error('Conversion failed')
+      onClose()
+      onConverted()
+    } catch (err) {
+      console.error(err)
+      toast.error('Error converting quote')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost">Convert</Button>
-      </DialogTrigger>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="space-y-4">
         <DialogHeader>
-          <DialogTitle>Convert Quote #{quoteId}</DialogTitle>
+          <DialogTitle>Convert Quote to Order</DialogTitle>
         </DialogHeader>
 
-        <p className="text-sm text-muted-foreground mb-4">
-          Are you sure you want to convert this quote into an order?
-        </p>
+        <div className="space-y-2">
+          <Label htmlFor="shipping_method">Shipping Method</Label>
+          <Input
+            id="shipping_method"
+            value={shippingMethod}
+            onChange={(e) => setShippingMethod(e.target.value)}
+            placeholder="e.g. FedEx, UPS, Hand delivery"
+          />
+        </div>
 
-        <Button onClick={handleConvert} disabled={loading} className="w-full">
-          {loading ? 'Converting...' : 'Convert to Order'}
+        <div className="space-y-2">
+          <Label htmlFor="status">Initial Fulfillment Status</Label>
+          <select
+            id="status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+          >
+            <option value="received">Received</option>
+            <option value="packed">Packed</option>
+            <option value="fulfilled">Fulfilled</option>
+          </select>
+        </div>
+
+        <Button onClick={handleSubmit} disabled={loading}>
+          {loading ? 'Converting...' : 'Convert'}
         </Button>
       </DialogContent>
     </Dialog>

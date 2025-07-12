@@ -75,6 +75,9 @@ export default function VendorProfilePage() {
 
   return (
     <main className="p-6">
+      <Button variant="outline" onClick={() => router.push('/admin/vendors')}>
+        ← Back to Vendors
+      </Button>
       <h1 className="text-2xl font-bold mb-2">{vendor.name}</h1>
       <div className="text-sm text-gray-600 mb-4">
         {vendor.email && <p>Email: {vendor.email}</p>}

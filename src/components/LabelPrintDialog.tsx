@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Product } from '@/types/ProductTypes'
+import toast from 'react-hot-toast'
 
 interface LabelPrintDialogProps {
   open: boolean
@@ -29,52 +30,29 @@ export default function LabelPrintDialog({
     if (open) setQty(defaultQty)
   }, [open, defaultQty])
 
-  const handlePrint = () => {
-    if (!printRef.current) return
+  const handlePrint = async () => {
+    try {
+      const res = await fetch('http://localhost:4000/api/print/print-label-csv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sku: product.sku,
+          quantity: qty || 1,
+          barcode_url: `http://localhost:4000/api/inventory/${product.id}/barcode.png`,
+        }),
+      });
 
-    const printContent = printRef.current.innerHTML
-    const win = window.open('', '', 'height=700,width=900')
-    if (!win) return
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Print failed');
+      }
 
-    win.document.write(`
-      <html>
-      <head>
-        <title>Print Labels</title>
-        <style>
-          @media print {
-            body { margin: 0; padding: 0; }
-            .label {
-              width: 1050px;
-              height: 450px;
-              border: 1px solid #000;
-              margin: 10px;
-              padding: 10px;
-              font-size: 14px;
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-            }
-            .logo {
-              font-weight: bold;
-              font-size: 16px;
-              color: #003cc5;
-            }
-            img {
-              width: 100%;
-              height: 50px;
-              object-fit: contain;
-            }
-          }
-        </style>
-      </head>
-      <body onload="window.print(); window.close()">
-        ${printContent}
-      </body>
-      </html>
-    `)
-
-    win.document.close()
-  }
+      toast.success(`Print job created: ${data.file}`);
+    } catch (err) {
+      console.error('❌ Print failed:', err);
+      toast.error('Failed to print labels');
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {

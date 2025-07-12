@@ -5,8 +5,10 @@ import { Product } from '@/types/ProductTypes'
 import { useUser } from '@/context/UserContext'
 
 export default function InventoryTableViewOnly() {
+  type ProductWithQuantity = Product & { quantity: number }
+
   const { user, loading } = useUser()
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<ProductWithQuantity[]>([])
   const [loadingData, setLoadingData] = useState(true)
 
   const fetchProducts = async () => {
@@ -48,16 +50,16 @@ export default function InventoryTableViewOnly() {
           </thead>
           <tbody>
             {products.map((product) => (
-              <tr key={product.id} className="border-t">
+              <tr key={product.id ?? `${product.sku}-${product.name}`} className="border-t">
                 <td className="px-4 py-2">{product.name}</td>
                 <td className="px-4 py-2">{product.sku}</td>
                 <td className="px-4 py-2">{product.vendor}</td>
-                <td className="px-4 py-2">{product.stock}</td>
+                <td className="px-4 py-2">{product.quantity}</td>
                 <td className="px-4 py-2">{product.category}</td>
               </tr>
             ))}
             {products.length === 0 && (
-              <tr>
+              <tr key="empty">
                 <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
                   No products in inventory.
                 </td>

@@ -3,6 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+import RevenueByProductChart from '@/components/dashboard/RevenueByProductChart'
+import ProfitByProductChart from '@/components/dashboard/ProfitByProductChart'
+import ProfitMarginChart from '@/components/dashboard/ProfitMarginChart'
+import RevenueVsProfitChart from '@/components/dashboard/RevenueVsProfitChart'
+import StockOverTimeChart from '@/components/dashboard/StockOverTimeChart'
+import VendorTable from '@/components/dashboard/VendorTable'
+import InventoryAdjustmentTable from '@/components/dashboard/InventoryAdjustmentTable'
+
 export default function AdminDashboardPage() {
   const [user, setUser] = useState<{ userId: number; role: string } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -37,26 +45,21 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <h1 className="text-2xl font-bold mb-4">Welcome to Admin Dashboard</h1>
-      <p className="mb-6 text-gray-700">Role: <span className="font-medium">{user?.role}</span></p>
+    <div className="min-h-screen bg-gray-100 px-6 py-8">
+      <h1 className="text-3xl font-bold mb-1 text-neutral-800">Admin Dashboard</h1>
+      <p className="text-gray-600 mb-8">Logged in as: <span className="font-medium">{user?.role}</span></p>
 
-      <div className="grid gap-4">
-        {user?.role === 'super_admin' && (
-          <button
-            onClick={() => router.push('/admin/users')}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            Manage Users
-          </button>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <RevenueByProductChart />
+        <ProfitByProductChart />
+        <ProfitMarginChart />
+        <RevenueVsProfitChart />
+        <StockOverTimeChart />
+      </div>
 
-        <button
-          onClick={() => router.push('/admin/products')}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          View Products
-        </button>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <VendorTable />
+        <InventoryAdjustmentTable />
       </div>
     </div>
   )

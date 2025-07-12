@@ -1,83 +1,123 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
+import { Order } from '@/types/OrderTypes'
 import OrderCard from './OrderCard'
-import { useMediaQuery } from '@/hooks/useMediaQuery'
-import GenerateOrViewOrderPDFButton from './GenerateOrViewOrderPDFButton'
-import SendOrderEmailButton from './SendOrderEmailButton'
+import OrderDetailsDialog from './OrderDetailsDialog'
+import { useState } from 'react'
+import { formatDate } from '@/lib/date'
+import { toast } from 'react-hot-toast'
 
-interface Order {
-  id: number
-  customer_name: string
-  customer_email: string
-  status: string
-  fulfillment_date: string | null
-  total: number | string | null
-  shipping_method?: string
-}
+type FulfillmentStatus = 'draft' | 'received' | 'packed' | 'fulfilled'
 
-interface OrderTableProps {
+export default function OrderTable({
+  orders,
+  onUpdated
+}: {
   orders: Order[]
-  onView: (orderId: number) => void
-}
+  onUpdated: () => void
+}) {
+  const activeOrders = orders.filter(
+    (order) => !(order.status === 'fulfilled' && order.fulfillment_date)
+  )
 
-export default function OrderTable({ orders, onView }: OrderTableProps) {
-  const isMobile = useMediaQuery('(max-width: 768px)')
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
 
-  if (isMobile) {
-    return (
-      <div className="flex flex-col gap-3">
-        {orders.map(order => (
-          <OrderCard
-            key={order.id}
-            order={{
-              ...order,
-              total: typeof order.total === 'number' ? order.total : parseFloat(order.total || '0')
-            }}
-            onView={onView}
-          />
-        ))}
-      </div>
-    )
+  const updateStatus = async (orderId: number, newStatus: FulfillmentStatus) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/sales/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          status: newStatus,
+          fulfillment_date: newStatus === 'fulfilled' ? new Date().toISOString() : null
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to update order')
+
+      toast.success(`Order marked as ${newStatus}`)
+      onUpdated()
+    } catch (err) {
+      console.error(err)
+      toast.error('Could not update status')
+    }
   }
 
+  console.log('Active Orders:', activeOrders)
+
   return (
-    <div className="rounded-xl overflow-hidden shadow">
-      <table className="w-full text-sm bg-white">
-        <thead className="bg-muted text-muted-foreground">
-          <tr>
-            <th className="text-left px-4 py-2">Order #</th>
-            <th className="text-left px-4 py-2">Customer</th>
-            <th className="text-left px-4 py-2">Status</th>
-            <th className="text-left px-4 py-2">Shipping</th>
-            <th className="text-left px-4 py-2">Fulfilled</th>
-            <th className="text-right px-4 py-2">Total</th>
-            <th className="text-right px-4 py-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map(order => {
-            const total = typeof order.total === 'number'
-              ? order.total
-              : parseFloat(order.total as string || '0')
-            return (
-              <tr key={order.id} className="border-t hover:bg-gray-50">
-                <td className="px-4 py-2">{order.id}</td>
+    <>
+      {/* Mobile view: cards */}
+      <div className="block md:hidden space-y-4">
+        {activeOrders.map((order) => (
+          <OrderCard key={order.id} order={order} onUpdated={onUpdated} />
+        ))}
+        {activeOrders.length === 0 && (
+          <p className="text-sm text-muted-foreground">No active orders</p>
+        )}
+      </div>
+
+      {/* Desktop view: table */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="min-w-full border text-sm">
+          <thead className="bg-muted">
+            <tr>
+              <th className="text-left px-4 py-2">Order #</th>
+              <th className="text-left px-4 py-2">Customer</th>
+              <th className="text-left px-4 py-2">Total</th>
+              <th className="text-left px-4 py-2">Status</th>
+              <th className="text-left px-4 py-2">Fulfilled</th>
+              <th className="text-left px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activeOrders.map((order) => (
+              <tr key={order.id} className="border-t">
+                <td className="px-4 py-2 font-medium">#{order.id}</td>
                 <td className="px-4 py-2">{order.customer_name}</td>
-                <td className="px-4 py-2 capitalize">{order.status}</td>
-                <td className="px-4 py-2">{order.shipping_method || '—'}</td>
-                <td className="px-4 py-2">{order.fulfillment_date?.slice(0, 10) || '—'}</td>
-                <td className="px-4 py-2 text-right">${total.toFixed(2)}</td>
-                <td className="px-4 py-2 text-right space-x-1">
-                  <Button size="sm" variant="outline" onClick={() => onView(order.id)}>View</Button>
-                  <GenerateOrViewOrderPDFButton orderId={order.id} />
-                  <SendOrderEmailButton orderId={order.id} customerEmail={order.customer_email} />
+                <td className="px-4 py-2">${order.total != null ? `$${Number(order.total).toFixed(2)}` : '—'}</td>
+                <td className="px-4 py-2">
+                  <select
+                    className="border rounded px-2 py-1"
+                    defaultValue={order.status}
+                    onChange={(e) =>
+                      updateStatus(order.id, e.target.value as FulfillmentStatus)
+                    }
+                  >
+                    <option value="received">Received</option>
+                    <option value="backordered">Backordered</option>
+                    <option value="fulfilled">Fulfilled</option>
+                  </select>
+                </td>
+                <td className="px-4 py-2">
+                  {order.fulfillment_date ? formatDate(order.fulfillment_date) : '—'}
+                </td>
+                <td className="px-4 py-2">
+                  <button
+                    className="text-blue-600 hover:underline"
+                    onClick={() => setSelectedOrderId(order.id)}
+                  >
+                    View
+                  </button>
                 </td>
               </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+            ))}
+          </tbody>
+        </table>
+        {activeOrders.length === 0 && (
+          <p className="text-sm text-muted-foreground px-4 py-2">No active orders</p>
+        )}
+      </div>
+
+      {selectedOrderId && (
+        <OrderDetailsDialog
+          orderId={selectedOrderId}
+          open={true}
+          onClose={() => setSelectedOrderId(null)}
+          onUpdated={onUpdated}
+        />
+      )}
+    </>
   )
 }

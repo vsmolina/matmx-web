@@ -51,7 +51,7 @@ const BarcodeScanner = forwardRef<BarcodeScannerHandle, BarcodeScannerProps>(
       const constraints = {
         video: {
           facingMode: facingMode === 'environment'
-            ? { ideal: 'environment' } // fallback-safe
+            ? { ideal: 'environment' }
             : 'user',
         },
       }
@@ -59,8 +59,19 @@ const BarcodeScanner = forwardRef<BarcodeScannerHandle, BarcodeScannerProps>(
       const codeReader = new BrowserMultiFormatReader()
       reader.current = codeReader
 
-      codeReader
-        .decodeOnceFromConstraints(constraints, video)
+      navigator.mediaDevices.getUserMedia(constraints)
+        .then((stream) => {
+          video.srcObject = stream
+          return new Promise<void>((resolve) => {
+            video.onloadedmetadata = () => {
+              video.play()
+              resolve()
+            }
+          })
+        })
+        .then(() => {
+          return codeReader.decodeOnceFromVideoElement(video)
+        })
         .then((result) => {
           if (!hasScanned) {
             setHasScanned(true)
@@ -75,6 +86,7 @@ const BarcodeScanner = forwardRef<BarcodeScannerHandle, BarcodeScannerProps>(
           }
         })
     }
+
 
     useImperativeHandle(ref, () => ({
       stopCamera: () => {

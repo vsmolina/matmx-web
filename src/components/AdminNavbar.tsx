@@ -37,6 +37,7 @@ export default function AdminNavbar() {
       { href: '/admin/crm', label: 'Customers' },
       { href: '/admin/sales', label: 'Quotes & Orders' },
       { href: '/admin/receiving', label: 'Receiving'},
+      { href: '/admin/documents', label: 'Documents'},
     ],
     inventory_manager: [
       { href: '/admin', label: 'Dashboard' },
@@ -58,6 +59,7 @@ export default function AdminNavbar() {
     ],
     warehouse_worker: [
       { href: '/admin/receiving', label: 'Receiving'},
+      { href: '/admin/documents', label: 'Documents'},
     ]
   }
 

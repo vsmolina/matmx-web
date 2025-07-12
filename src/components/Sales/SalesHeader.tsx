@@ -157,7 +157,7 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
           onValueChange={(v) => handleChange('status', v)}
         >
           <SelectTrigger id="status">
-            <SelectValue placeholder="All" />
+            <SelectValue placeholder="all" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
@@ -167,6 +167,8 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
             <SelectItem value="converted">Converted</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="fulfilled">Fulfilled</SelectItem>
+            <SelectItem value="received">Received</SelectItem>
+            <SelectItem value="backordered">Backordered</SelectItem>
           </SelectContent>
         </Select>
       </div>

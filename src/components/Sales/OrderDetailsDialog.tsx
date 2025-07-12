@@ -9,7 +9,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from '@/components/ui/select'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
 import PriceSummaryBox from './PriceSummaryBox'
@@ -26,8 +32,8 @@ interface Order {
   id: number
   customer_name: string
   status: string
-  shipping_method: string
-  shipping_cost: number
+  shipping_method: string | null
+  shipping_cost: number | null
   fulfillment_date: string | null
   items: OrderItem[]
   subtotal: number
@@ -87,7 +93,10 @@ export default function OrderDetailsDialog({ orderId, open, onClose, onUpdated }
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Status</Label>
-              <Select value={order.status} onValueChange={(v) => setOrder({ ...order, status: v })}>
+              <Select
+                value={order.status}
+                onValueChange={(v) => setOrder({ ...order, status: v })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -102,7 +111,7 @@ export default function OrderDetailsDialog({ orderId, open, onClose, onUpdated }
             <div>
               <Label>Shipping Method</Label>
               <Input
-                value={order.shipping_method}
+                value={order.shipping_method || ''}
                 onChange={(e) => setOrder({ ...order, shipping_method: e.target.value })}
               />
             </div>
@@ -111,7 +120,7 @@ export default function OrderDetailsDialog({ orderId, open, onClose, onUpdated }
               <Label>Shipping Cost</Label>
               <Input
                 type="number"
-                value={order.shipping_cost}
+                value={order.shipping_cost ?? 0}
                 onChange={(e) => setOrder({ ...order, shipping_cost: parseFloat(e.target.value) || 0 })}
               />
             </div>

@@ -12,6 +12,8 @@ import ImportLogDialog from './ImportLogDialog'
 import clsx from 'clsx'
 import { useUser } from '@/context/UserContext'
 import { useRouter } from 'next/navigation'
+import ProductDetailsModal from './ProductDetailsModal'
+import AdjustInventoryModal from '@/components/AdjustInventoryModal'
 
 interface ProductVendorStock {
   product_id: number
@@ -31,6 +33,7 @@ export default function InventoryTable() {
   const [search, setSearch] = useState('')
   const [loadingData, setLoadingData] = useState(true)
   const router = useRouter();
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
 
   const fetchProducts = async () => {
     try {
@@ -117,16 +120,32 @@ export default function InventoryTable() {
                 <td className="px-4 py-2">{row.reorder_threshold}</td>
                 <td className="px-4 py-2">{row.category}</td>
                 <td className="px-4 py-2 space-x-2">
+                  <AdjustInventoryModal
+                    productId={row.product_id}
+                    vendorId={row.vendor_id}
+                    vendorName={row.vendor}
+                    currentStock={row.quantity}
+                    onSave={() => {
+                      fetchProducts()
+                      setHistoryRefreshKey(prev => prev + 1)
+                    }}
+                    trigger={<Button variant="outline" size="sm">Adjust</Button>}
+                  />
+                  <ProductDetailsModal
+                    productId={row.product_id}
+                    trigger={<Button size="sm" variant="outline">Details</Button>}
+                  />
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => router.push(`/admin/products/${row.product_id}`)}
                   >
-                    Details
+                    Profile
                   </Button>
                   <InventoryHistoryDialog
                     productId={row.product_id}
                     role={user.role}
+                    refreshKey={historyRefreshKey}
                   />
                 </td>
               </tr>

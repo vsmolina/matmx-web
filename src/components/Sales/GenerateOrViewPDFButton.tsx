@@ -20,7 +20,7 @@ export default function GenerateOrViewPDFButton({ quoteId }: Props) {
 
   async function checkPDFExists() {
     try {
-      const res = await fetch(`http://localhost:4000/api/email/quote/${quoteId}/pdf`, { method: 'HEAD', credentials: 'include' })
+      const res = await fetch(`http://localhost:4000/api/email/quotes/${quoteId}/generate-pdf`, { method: 'HEAD', credentials: 'include' })
       setHasPDF(res.ok)
     } catch {
       setHasPDF(false)
@@ -50,7 +50,7 @@ export default function GenerateOrViewPDFButton({ quoteId }: Props) {
         <TooltipTrigger asChild>
           {hasPDF ? (
             <a
-              href={`http://localhost:4000/api/email/quote/${quoteId}/pdf`}
+              href={`http://localhost:4000/api/email/quotes/${quoteId}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
             >

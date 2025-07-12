@@ -30,12 +30,13 @@ export default function ReceivingForm({ product, onSubmitted }: ReceivingFormPro
     setLoading(true)
 
     try {
-      const res = await fetch(`http://localhost:4000/api/inventory/${product.id}/adjust`, {
+      const res = await fetch(`http://localhost:4000/api/inventory/${product.id}/receive`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          change: quantity,
+          vendor_id: product.vendor_id,
+          quantity,
           reason: 'received',
           note: note || 'Received via scan',
         }),

@@ -1,27 +1,23 @@
-import Hero from "@/components/Hero"
-import About from "@/components/About"
-import Contact from "@/components/Contact"
-import Footer from "@/components/Footer"
-import Navbar from "@/components/Navbar"
-import ProductCarousel from "@/components/ProductCarousel"
-
-const sampleProducts = Array.from({ length: 20 }, (_, i) => ({
-  id: i + 1,
-  name: `Product ${i + 1}`,
-  description: `Description for Product ${i + 1}`,
-}))
+import Header from "@/components/public/Header";
+import Hero from "@/components/public/Hero";
+import AboutSection from "@/components/public/AboutSection";
+import ProductGrid from "@/components/public/ProductGrid";
+import FeaturesSection from "@/components/public/FeaturesSection";
+import ContactSection from "@/components/public/ContactSection";
+import Footer from "@/components/public/Footer";
 
 export default function Home() {
   return (
     <>
-      <Navbar />
-      <main className="flex flex-col items-center justify-center">
+      <Header />
+      <main className="flex flex-col">
         <Hero />
-        <ProductCarousel products={sampleProducts} />
-        <About />
-        <Contact />
+        <AboutSection />
+        <ProductGrid />
+        <FeaturesSection />
+        <ContactSection />
       </main>
       <Footer />
     </>
-  )
+  );
 }

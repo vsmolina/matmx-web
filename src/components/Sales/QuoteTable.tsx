@@ -6,18 +6,7 @@ import QuoteCard from './QuoteCard'
 import SendQuoteEmailButton from './SendQuoteEmailButton'
 import GenerateOrViewPDFButton from './GenerateOrViewPDFButton'
 import toast from 'react-hot-toast'
-
-interface Quote {
-  id: number
-  title?: string
-  customer_name: string
-  customer_email: string
-  rep_name: string
-  status: string
-  valid_until?: string
-  delivery_date?: string
-  total?: number | string | null
-}
+import { Quote } from '@/types/QuoteTypes'
 
 interface QuoteTableProps {
   quotes: Quote[]
