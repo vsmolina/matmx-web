@@ -16,7 +16,7 @@ export default function AdminGuard({ children, allowedRoles }: AdminGuardProps) 
   useEffect(() => {
     if (!loading) {
       if (!user || (allowedRoles && !allowedRoles.includes(user.role))) {
-        router.replace('/admin-login')
+        router.replace('/admin/login')
       }
     }
   }, [user, loading, allowedRoles, router])

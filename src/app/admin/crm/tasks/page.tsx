@@ -8,6 +8,7 @@ import CompletedTaskLogDialog from '@/components/CompletedTaskLogDialog'
 import { useUser } from '@/context/UserContext'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
+import { CheckSquare, ArrowLeft, History, Calendar } from 'lucide-react'
 
 export default function CRMTaskPage() {
   const [groupedTasks, setGroupedTasks] = useState<any[]>([])
@@ -59,37 +60,59 @@ export default function CRMTaskPage() {
   if (!user) return <p>Loading...</p>
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.back()}>
-            ← Back
-          </Button>
-          <h1 className="text-2xl font-bold">CRM Task Center</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
+        {/* Header Section */}
+        <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-1 sm:gap-2 text-sm">
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <CheckSquare className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">CRM Task Center</h1>
+                  <p className="text-gray-600 text-xs sm:text-sm lg:text-base">Manage and track all customer tasks</p>
+                </div>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCompleted(true)}
+              className="flex items-center gap-2 w-full sm:w-auto text-sm"
+            >
+              <History className="w-4 h-4" />
+              <span className="hidden sm:inline">View Completed Tasks</span>
+              <span className="sm:hidden">Completed</span>
+            </Button>
+          </div>
         </div>
-        <Button variant="outline" onClick={() => setShowCompleted(true)}>
-          View Completed Tasks
-        </Button>
-      </div>
 
-      <TaskFilterBar filters={filters} onChange={setFilters} />
+        <TaskFilterBar filters={filters} onChange={setFilters} />
 
-      {groupedTasks.map((rep) => (
-        <TaskGroupByRep
-          key={rep.rep_id}
-          rep={{
-            ...rep,
-            customers: rep.customers.map(c => ({
-              ...c,
-              tasks: filterTasks(c.tasks)
-            }))
-          }}
-          currentUserId={user.userId}
-          isSuperAdmin={user.role === 'super_admin'}
-          onCreateTask={handleCreateClick}
-          onTaskUpdate={loadTasks}
-        />
-      ))}
+        {/* Tasks Section */}
+        <div className="space-y-4 sm:space-y-6">
+          {groupedTasks.map((rep) => (
+            <TaskGroupByRep
+              key={rep.rep_id}
+              rep={{
+                ...rep,
+                customers: rep.customers.map(c => ({
+                  ...c,
+                  tasks: filterTasks(c.tasks)
+                }))
+              }}
+              currentUserId={user.userId}
+              isSuperAdmin={user.role === 'super_admin'}
+              onCreateTask={handleCreateClick}
+              onTaskUpdate={loadTasks}
+            />
+          ))}
+        </div>
 
       {taskDialogCustomerId !== null && (
         <TaskDialog
@@ -104,11 +127,12 @@ export default function CRMTaskPage() {
         />
       )}
 
-      <CompletedTaskLogDialog
-        open={showCompleted}
-        onOpenChange={setShowCompleted}
-        onTaskUndo={loadTasks}
-      />
+        <CompletedTaskLogDialog
+          open={showCompleted}
+          onOpenChange={setShowCompleted}
+          onTaskUndo={loadTasks}
+        />
+      </div>
     </div>
   )
 }

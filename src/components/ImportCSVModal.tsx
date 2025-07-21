@@ -33,7 +33,9 @@ export default function ImportCSVModal({ onSuccess }: { onSuccess: () => void })
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
-    accept: '.csv',
+    accept: {
+      'text/csv': ['.csv'],
+    },
     multiple: false,
   })
 
@@ -41,7 +43,7 @@ export default function ImportCSVModal({ onSuccess }: { onSuccess: () => void })
     if (!file) return toast.error('No file selected')
 
     const formData = new FormData()
-    formData.append('csv', file)
+    formData.append('file', file)
     formData.append('note', note)
 
     setUploading(true)
@@ -84,6 +86,16 @@ export default function ImportCSVModal({ onSuccess }: { onSuccess: () => void })
       <DialogContent className="max-w-md center">
         <DialogHeader>
           <DialogTitle>Import Inventory CSV</DialogTitle>
+          <div className="text-sm text-gray-600">
+            Upload a CSV file to import inventory products. 
+            <a 
+              href="/sample_inventory_upload.csv" 
+              download 
+              className="text-blue-600 hover:text-blue-800 underline ml-1"
+            >
+              Download sample CSV template
+            </a>
+          </div>
         </DialogHeader>
 
         <Textarea

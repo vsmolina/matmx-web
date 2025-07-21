@@ -56,7 +56,7 @@ export default function CustomerTaskPage() {
           <Button variant="outline" onClick={() => router.back()}>
             ← Back
           </Button>
-          <h1 className="text-xl font-bold">Tasks for Customer #{id}</h1>
+          <h1 className="text-xl font-semibold">Tasks for Customer #{id}</h1>
         </div>
         <div className="flex gap-2">
           <Button onClick={handleCreateClick}>+ Task</Button>

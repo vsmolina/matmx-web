@@ -51,18 +51,34 @@ export default function QuoteDetailsDialog({
   onUpdated
 }: QuoteDetailsDialogProps) {
   const [quote, setQuote] = useState<Quote | null>(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setQuote(null)
+      return
+    }
+    
+    setLoading(true)
     fetch(`http://localhost:4000/api/sales/quotes/${quoteId}`, {
       credentials: 'include'
     })
       .then(res => res.json())
-      .then(data => setQuote(data))
-      .catch(() => toast.error('Failed to load quote'))
+      .then(data => {
+        console.log('Quote data:', data)
+        setQuote(data)
+        setLoading(false)
+      })
+      .catch(error => {
+        console.error('Error fetching quote:', error)
+        toast.error('Failed to load quote')
+        setLoading(false)
+      })
   }, [quoteId, open])
 
   const handleSave = async () => {
+    if (!quote) return
+    
     const res = await fetch(`http://localhost:4000/api/sales/quotes/${quoteId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -79,23 +95,32 @@ export default function QuoteDetailsDialog({
     }
   }
 
-  if (!quote) return null
-
-  const total = quote.items.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0)
+  const total = quote?.items?.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0) || 0
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="w-full h-screen sm:max-w-3xl sm:h-auto p-0">
         <div className="relative px-4 pt-4 pb-2 sm:px-6 sm:pt-6 sm:pb-0">
           <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl">Edit Quote #{quote.id}</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">
+              {loading ? 'Loading...' : quote ? `Edit Quote #${quote.id}` : 'Quote Details'}
+            </DialogTitle>
             <DialogDescription className="sr-only">
               Edit quote information and line items
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <div className="overflow-y-auto h-[calc(100vh-64px)] px-4 sm:px-6 space-y-6 pb-6">
+        {loading ? (
+          <div className="overflow-y-auto h-[calc(100vh-64px)] px-4 sm:px-6 space-y-6 pb-6">
+            <div className="text-center py-8">Loading quote details...</div>
+          </div>
+        ) : !quote ? (
+          <div className="overflow-y-auto h-[calc(100vh-64px)] px-4 sm:px-6 space-y-6 pb-6">
+            <div className="text-center py-8 text-red-500">Failed to load quote details</div>
+          </div>
+        ) : (
+          <div className="overflow-y-auto h-[calc(100vh-64px)] px-4 sm:px-6 space-y-6 pb-6">
           {/* Static Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded-lg">
             <div>
@@ -140,14 +165,14 @@ export default function QuoteDetailsDialog({
             <div>
               <Label>Customer Note</Label>
               <Textarea
-                value={quote.customer_note}
+                value={quote.customer_note || ''}
                 onChange={(e) => setQuote({ ...quote, customer_note: e.target.value })}
               />
             </div>
             <div>
               <Label>Internal Note</Label>
               <Textarea
-                value={quote.internal_note}
+                value={quote.internal_note || ''}
                 onChange={(e) => setQuote({ ...quote, internal_note: e.target.value })}
               />
             </div>
@@ -169,7 +194,8 @@ export default function QuoteDetailsDialog({
           <Button onClick={handleSave} className="w-full mt-4">
             Save Changes
           </Button>
-        </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

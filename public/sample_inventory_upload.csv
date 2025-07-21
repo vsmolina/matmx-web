@@ -1,5 +1,8 @@
-﻿name,sku,vendor,stock,reorder_threshold,unit_price,category,notes
-Hex Bolt M8,HB-M8-001,Fastenal,120,50,0.25,Hardware,Zinc plated
-PVC Pipe 2in,PVC-2IN-002,Grainger,75,30,3.75,Plumbing,10 ft sections
-Electrical Tape,ELEC-TAPE-003,3M,200,100,1.1,Electrical,Black
-Latex Gloves Box,GLV-LTX-004,Staples,30,40,6,Safety,Box of 100
+name,sku,vendor_id,category,reorder_threshold,unit_price,notes,quantity,lead_time_days,payment_terms,vendor_notes
+Hex Bolt M8,HB-M8-001,1,Hardware,50,0.25,Zinc plated hex bolts,120,7,Net 30,Bulk discount available
+PVC Pipe 2in,PVC-2IN-002,2,Plumbing,30,3.75,10 ft sections,75,14,Net 15,Standard shipping
+Electrical Tape,ELEC-TAPE-003,3,Electrical,100,1.10,Black electrical tape,200,5,Net 30,Premium grade
+Latex Gloves Box,GLV-LTX-004,1,Safety,40,6.00,Box of 100 disposable gloves,30,10,Net 30,Medical grade
+Steel Wire 12AWG,WIRE-12-005,2,Electrical,25,2.50,12 AWG solid copper wire,50,7,Net 15,UL listed
+Concrete Anchor,ANCH-CON-006,1,Hardware,75,1.80,1/4 inch concrete anchors,100,14,Net 30,Corrosion resistant
+Safety Goggles,GOGG-SAF-007,4,Safety,20,12.99,ANSI Z87.1 rated safety goggles,15,3,Net 30,Anti-fog coating

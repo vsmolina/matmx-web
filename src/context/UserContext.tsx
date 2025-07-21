@@ -13,9 +13,14 @@ interface User {
 interface UserContextType {
   user: User | null
   loading: boolean
+  refreshUser: () => Promise<void>
 }
 
-const UserContext = createContext<UserContextType>({ user: null, loading: true })
+const UserContext = createContext<UserContextType>({ 
+  user: null, 
+  loading: true,
+  refreshUser: async () => {}
+})
 
 export const useUser = () => useContext(UserContext)
 
@@ -23,28 +28,44 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await fetch('http://localhost:4000/api/me', {
-          credentials: 'include',
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setUser(data.user)
-        }
-      } catch (err) {
-        console.error('Failed to fetch user:', err)
-      } finally {
-        setLoading(false)
+  const fetchUser = async () => {
+    try {
+      // Add timeout to prevent hanging
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
+      const res = await fetch('http://localhost:4000/api/me', {
+        credentials: 'include',
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data.user)
+      } else {
+        setUser(null)
       }
+    } catch (err) {
+      console.error('Failed to fetch user:', err)
+      setUser(null)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  const refreshUser = async () => {
+    setLoading(true)
+    await fetchUser()
+  }
+
+  useEffect(() => {
     fetchUser()
   }, [])
 
   return (
-    <UserContext.Provider value={{ user, loading }}>
+    <UserContext.Provider value={{ user, loading, refreshUser }}>
       {children}
     </UserContext.Provider>
   )

@@ -50,24 +50,41 @@ interface OrderDetailsDialogProps {
 
 export default function OrderDetailsDialog({ orderId, open, onClose, onUpdated }: OrderDetailsDialogProps) {
   const [order, setOrder] = useState<Order | null>(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setOrder(null)
+      return
+    }
+    
+    setLoading(true)
     fetch(`http://localhost:4000/api/sales/orders/${orderId}`, { credentials: 'include' })
       .then(res => res.json())
-      .then(data => setOrder(data))
+      .then(data => {
+        console.log('Order data:', data)
+        setOrder(data)
+        setLoading(false)
+      })
+      .catch(error => {
+        console.error('Error fetching order:', error)
+        toast.error('Failed to load order details')
+        setLoading(false)
+      })
   }, [orderId, open])
 
   const handleSave = async () => {
+    if (!order) return
+    
     const res = await fetch(`http://localhost:4000/api/sales/orders/${orderId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({
-        status: order?.status,
-        shipping_method: order?.shipping_method,
-        shipping_cost: order?.shipping_cost,
-        fulfillment_date: order?.fulfillment_date,
+        status: order.status,
+        shipping_method: order.shipping_method,
+        shipping_cost: order.shipping_cost,
+        fulfillment_date: order.fulfillment_date,
       }),
     })
 
@@ -80,67 +97,77 @@ export default function OrderDetailsDialog({ orderId, open, onClose, onUpdated }
     }
   }
 
-  if (!order) return null
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Order #{order.id}</DialogTitle>
+          <DialogTitle>
+            {loading ? 'Loading...' : order ? `Order #${order.id}` : 'Order Details'}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label>Status</Label>
-              <Select
-                value={order.status}
-                onValueChange={(v) => setOrder({ ...order, status: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="fulfilled">Fulfilled</SelectItem>
-                  <SelectItem value="backordered">Backordered</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Shipping Method</Label>
-              <Input
-                value={order.shipping_method || ''}
-                onChange={(e) => setOrder({ ...order, shipping_method: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <Label>Shipping Cost</Label>
-              <Input
-                type="number"
-                value={order.shipping_cost ?? 0}
-                onChange={(e) => setOrder({ ...order, shipping_cost: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-
-            <div>
-              <Label>Fulfillment Date</Label>
-              <Input
-                type="date"
-                value={order.fulfillment_date?.slice(0, 10) || ''}
-                onChange={(e) => setOrder({ ...order, fulfillment_date: e.target.value })}
-              />
-            </div>
+        {loading ? (
+          <div className="space-y-4 p-4">
+            <div className="text-center">Loading order details...</div>
           </div>
+        ) : !order ? (
+          <div className="space-y-4 p-4">
+            <div className="text-center text-red-500">Failed to load order details</div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={order.status}
+                  onValueChange={(v) => setOrder({ ...order, status: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="fulfilled">Fulfilled</SelectItem>
+                    <SelectItem value="backordered">Backordered</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <PriceSummaryBox items={order.items} />
+              <div>
+                <Label>Shipping Method</Label>
+                <Input
+                  value={order.shipping_method || ''}
+                  onChange={(e) => setOrder({ ...order, shipping_method: e.target.value })}
+                />
+              </div>
 
-          <Button onClick={handleSave} className="w-full mt-4">
-            Save Changes
-          </Button>
-        </div>
+              <div>
+                <Label>Shipping Cost</Label>
+                <Input
+                  type="number"
+                  value={order.shipping_cost ?? 0}
+                  onChange={(e) => setOrder({ ...order, shipping_cost: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+
+              <div>
+                <Label>Fulfillment Date</Label>
+                <Input
+                  type="date"
+                  value={order.fulfillment_date?.slice(0, 10) || ''}
+                  onChange={(e) => setOrder({ ...order, fulfillment_date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <PriceSummaryBox items={order.items} />
+
+            <Button onClick={handleSave} className="w-full mt-4">
+              Save Changes
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

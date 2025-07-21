@@ -7,6 +7,7 @@ import SendQuoteEmailButton from './SendQuoteEmailButton'
 import GenerateOrViewPDFButton from './GenerateOrViewPDFButton'
 import toast from 'react-hot-toast'
 import { Quote } from '@/types/QuoteTypes'
+import { FileText } from 'lucide-react'
 
 interface QuoteTableProps {
   quotes: Quote[]
@@ -37,14 +38,24 @@ export default function QuoteTable({
 
   if (isMobile) {
     return (
-      <div className="flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-150px)]">
+      <div className="space-y-4">
         {quotes.map((quote) => (
           <QuoteCard
             key={quote.id}
             quote={quote}
             onView={onView}
+            onConvert={handleConvert}
           />
         ))}
+        {quotes.length === 0 && (
+          <div className="text-center py-12">
+            <div className="flex flex-col items-center justify-center text-gray-500">
+              <FileText className="h-16 w-16 text-gray-300 mb-4" />
+              <p className="text-base font-medium">No quotes found</p>
+              <p className="text-sm">Try adjusting your search criteria</p>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -81,7 +92,10 @@ export default function QuoteTable({
                 <td className="px-4 py-2">{quote.delivery_date?.slice(0, 10)}</td>
                 <td className="px-4 py-2 text-right">${total.toFixed(2)}</td>
                 <td className="px-4 py-2 text-right space-x-1">
-                  <Button size="sm" variant="outline" onClick={() => onView(quote.id)}>View</Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    console.log('View button clicked for quote:', quote.id)
+                    onView(quote.id)
+                  }}>View</Button>
                   <GenerateOrViewPDFButton quoteId={quote.id} />
                   <SendQuoteEmailButton quoteId={quote.id} customerEmail={quote.customer_email} />
                   <Button size="sm" variant="ghost" onClick={() => handleConvert(quote.id)}>Convert</Button>

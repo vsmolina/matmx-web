@@ -19,6 +19,7 @@ interface Props {
 export default function ProductDetailsModal({ productId, trigger }: Props) {
   const [product, setProduct] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [barcodeDataUrl, setBarcodeDataUrl] = useState<string | null>(null)
 
   const fetchProduct = async () => {
     setLoading(true)
@@ -35,8 +36,28 @@ export default function ProductDetailsModal({ productId, trigger }: Props) {
     }
   }
 
+  const fetchBarcode = async () => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/inventory/${productId}/barcode.png`, {
+        credentials: 'include'
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setBarcodeDataUrl(data.dataUrl)
+      }
+    } catch (err) {
+      console.error('Error fetching barcode:', err)
+      setBarcodeDataUrl(null)
+    }
+  }
+
   return (
-    <Dialog onOpenChange={(open) => open && fetchProduct()}>
+    <Dialog onOpenChange={(open) => {
+      if (open) {
+        fetchProduct()
+        fetchBarcode()
+      }
+    }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -56,17 +77,19 @@ export default function ProductDetailsModal({ productId, trigger }: Props) {
 
             <div className="mt-4 border-t pt-3 text-center">
               <p className="text-xs text-gray-600 mb-1">Barcode</p>
-              <img
-                src={`http://localhost:4000/api/inventory/${productId}/barcode.png`}
-                alt="Barcode"
-                width={300}
-                height={80}
-                className="mx-auto border bg-white p-2"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.alt = 'Barcode not available'
-                }}
-              />
+              {barcodeDataUrl ? (
+                <img
+                  src={barcodeDataUrl}
+                  alt="Barcode"
+                  width={300}
+                  height={80}
+                  className="mx-auto border bg-white p-2"
+                />
+              ) : (
+                <div className="mx-auto border bg-white p-2 w-[300px] h-[80px] flex items-center justify-center text-gray-500 text-sm">
+                  Barcode not available
+                </div>
+              )}
             </div>
           </div>
         ) : (

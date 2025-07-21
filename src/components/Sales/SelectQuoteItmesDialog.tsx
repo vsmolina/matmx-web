@@ -38,9 +38,11 @@ export default function SelectQuoteItemsDialog({
   }, [open, initialItems])
 
   const handleQtyChange = (product_id: number, quantity: number) => {
+    if (quantity <= 0) return
+    
     setSelected(prev => {
       const existing = prev.find(p => p.product_id === product_id)
-      const product = products.find(p => p.id === product_id)
+      const product = products.find(p => p.product_id === product_id)
 
       if (existing) {
         return prev.map(p =>
@@ -78,39 +80,53 @@ export default function SelectQuoteItemsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="h-[400px] pr-2 space-y-4">
-          {products.map(product => {
-            const item = selected.find(i => i.product_id === product.id)
+        <ScrollArea className="h-[400px] pr-2">
+          <div className="space-y-4">
+            {products.map((product, index) => {
+              const item = selected.find(i => i.product_id === product.product_id)
 
-            return (
-              <div key={product.id} className="flex items-center gap-4 border-b pb-2">
-                <div className="flex-1">
-                  <p className="font-medium">{product.name}</p>
-                  <p className="text-xs text-muted-foreground">{product.sku}</p>
-                  <p className="text-sm mt-1">{formatCurrency(product.unit_price)}</p>
-                </div>
-
-                {item ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      value={item.quantity}
-                      onChange={e =>
-                        handleQtyChange(product.id, Number(e.target.value))
-                      }
-                      className="w-20"
-                    />
-                    <Button variant="ghost" onClick={() => handleRemove(product.id)}>
-                      Remove
-                    </Button>
+              return (
+                <div key={`product-${product.product_id}-${index}`} className="flex items-center gap-4 border-b pb-2">
+                  <div className="flex-1">
+                    <p className="font-medium">{product.name}</p>
+                    <p className="text-xs text-muted-foreground">{product.sku}</p>
+                    <p className="text-sm mt-1">{formatCurrency(product.unit_price)}</p>
                   </div>
-                ) : (
-                  <Button onClick={() => handleQtyChange(product.id, 1)}>Add</Button>
-                )}
-              </div>
-            )
-          })}
+
+                  {item ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        value={item.quantity.toString()}
+                        onChange={e => {
+                          const value = e.target.value
+                          const numValue = parseInt(value, 10)
+                          if (!isNaN(numValue) && numValue >= 1) {
+                            handleQtyChange(product.product_id, numValue)
+                          }
+                        }}
+                        onBlur={e => {
+                          const value = e.target.value
+                          const numValue = parseInt(value, 10)
+                          if (isNaN(numValue) || numValue < 1) {
+                            handleQtyChange(product.product_id, 1)
+                          }
+                        }}
+                        className="w-20"
+                        data-product-id={product.product_id}
+                      />
+                      <Button variant="ghost" onClick={() => handleRemove(product.product_id)}>
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button onClick={() => handleQtyChange(product.product_id, 1)}>Add</Button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </ScrollArea>
 
         <div className="flex justify-end mt-4">

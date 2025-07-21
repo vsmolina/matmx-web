@@ -7,7 +7,7 @@ export default function Footer() {
       <p className="text-sm">&copy; {new Date().getFullYear()} MatMX. All rights reserved.</p>
 
       <div className="flex flex-col md:flex-row gap-2 md:gap-6 items-center text-gray-400 text-xs">
-          <Link href="/admin-login" className="hover:text-white transition underline">
+          <Link href="/admin/login" className="hover:text-white transition underline">
             Admin Login
           </Link>
         </div>

@@ -10,57 +10,59 @@ export function useDashboardSummary() {
     assignedCustomers: 0,
     recentInteractions: 0,
   })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (!user) return
+  // useEffect(() => {
+  //   if (!user?.id) return
 
-    const fetchData = async () => {
-        try {
-            const [tasksRes, customersRes] = await Promise.all([
-            fetch('http://localhost:4000/api/crm/tasks', { credentials: 'include' }),
-            fetch('http://localhost:4000/api/crm', { credentials: 'include' })
-            ])
+  //   const fetchData = async () => {
+  //       try {
+  //           const [tasksRes, customersRes] = await Promise.all([
+  //           fetch('http://localhost:4000/api/crm/tasks', { credentials: 'include' }),
+  //           fetch('http://localhost:4000/api/crm', { credentials: 'include' })
+  //           ])
 
-            const tasksData = await tasksRes.json()
-            const customersData = await customersRes.json()
+  //           // Check for rate limiting
+  //           if (tasksRes.status === 429 || customersRes.status === 429) {
+  //               console.warn('Rate limited - skipping dashboard data fetch')
+  //               return
+  //           }
 
-            // Now fetch interaction logs from all assigned customers
-            const customerIds = customersData.customers.map((c: any) => c.id)
+  //           if (!tasksRes.ok || !customersRes.ok) {
+  //               console.error('API request failed:', { 
+  //                   tasksStatus: tasksRes.status, 
+  //                   customersStatus: customersRes.status 
+  //               })
+  //               return
+  //           }
 
-            const interactionCounts = await Promise.all(
-            customerIds.map(async (id: number) => {
-                const res = await fetch(`http://localhost:4000/api/crm/${id}/interactions`, {
-                credentials: 'include'
-                })
-                if (!res.ok) return []
-                const json = await res.json()
-                return json.logs.filter((i: any) => {
-                const logDate = new Date(i.created_at)
-                const oneWeekAgo = new Date()
-                oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-                return logDate >= oneWeekAgo
-                })
-            })
-            )
+  //           const tasksData = await tasksRes.json()
+  //           const customersData = await customersRes.json()
 
-            const recentInteractionCount = interactionCounts.flat().length
+  //           // Check if API responses are valid
+  //           if (!tasksData || !customersData) {
+  //               console.error('Invalid API response:', { tasksData, customersData })
+  //               return
+  //           }
 
-            setData({
-            openTasks: tasksData.tasks.length,
-            assignedCustomers: customersData.customers.length,
-            recentInteractions: recentInteractionCount,
-            })
-        } catch (err) {
-            console.error('Failed to load dashboard summary', err)
-        } finally {
-            setLoading(false)
-        }
-    }
+  //           const customers = customersData.customers || []
 
+  //           // Skip interaction fetching to avoid rate limits for now
+  //           // This can be optimized later with a single bulk API endpoint
+  //           setData({
+  //           openTasks: tasksData.tasks?.length || 0,
+  //           assignedCustomers: customers.length,
+  //           recentInteractions: 0, // Temporarily disabled to prevent rate limiting
+  //           })
+  //       } catch (err) {
+  //           console.error('Failed to load dashboard summary', err)
+  //       } finally {
+  //           setLoading(false)
+  //       }
+  //   }
 
-    fetchData()
-  }, [user])
+  //   fetchData()
+  // }, [user?.id])
 
   return { ...data, loading }
 }

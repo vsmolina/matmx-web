@@ -33,18 +33,51 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
   useEffect(() => {
     if (user.role === 'super_admin') {
       fetch('http://localhost:4000/api/users/roles?role=sales_rep', { credentials: 'include' })
-        .then(res => res.json())
-        .then(setReps)
-        .catch(() => setReps([]))
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`)
+          }
+          return res.json()
+        })
+        .then(data => {
+          // Ensure data is an array before setting state
+          if (Array.isArray(data)) {
+            setReps(data)
+          } else {
+            console.warn('Sales reps API returned non-array data:', data)
+            setReps([])
+          }
+        })
+        .catch(error => {
+          console.error('Failed to fetch sales reps:', error)
+          setReps([])
+        })
     }
   }, [user.role])
 
   // Fetch all customers on mount
   useEffect(() => {
     fetch('http://localhost:4000/api/crm/', { credentials: 'include' })
-      .then(res => res.json())
-      .then(setAllCustomers)
-      .catch(() => setAllCustomers([]))
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`)
+        }
+        return res.json()
+      })
+      .then(data => {
+        if (Array.isArray(data)) {
+          setAllCustomers(data)
+        } else if (data?.customers && Array.isArray(data.customers)) {
+          setAllCustomers(data.customers)
+        } else {
+          console.warn('Customers API returned invalid data structure:', data)
+          setAllCustomers([])
+        }
+      })
+      .catch(error => {
+        console.error('Failed to fetch customers:', error)
+        setAllCustomers([])
+      })
   }, [])
 
   // Dynamic search if user types 2+ characters
@@ -58,9 +91,24 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
       fetch(`http://localhost:4000/api/crm/search?search=${encodeURIComponent(localFilter.customer)}`, {
         credentials: 'include'
       })
-        .then(res => res.json())
-        .then(setCustomerSuggestions)
-        .catch(() => setCustomerSuggestions([]))
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`)
+          }
+          return res.json()
+        })
+        .then(data => {
+          if (Array.isArray(data)) {
+            setCustomerSuggestions(data)
+          } else {
+            console.warn('Customer search API returned non-array data:', data)
+            setCustomerSuggestions([])
+          }
+        })
+        .catch(error => {
+          console.error('Failed to search customers:', error)
+          setCustomerSuggestions([])
+        })
     }, 250)
 
     return () => clearTimeout(delay)
@@ -98,6 +146,9 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
         break
     }
 
+    // Add one day to end date to include all records created today
+    end.setDate(end.getDate() + 1)
+
     const format = (d: Date) => d.toISOString().split('T')[0]
     handleChange('startDate', format(start))
     handleChange('endDate', format(end))
@@ -115,7 +166,7 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
     : customerSuggestions
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end justify-between bg-white p-4 rounded-xl shadow mb-6 relative">
+    <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end justify-between relative">
       {/* Customer autocomplete */}
       <div className="flex flex-col relative">
         <Label htmlFor="customer">Customer</Label>
@@ -130,8 +181,9 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
           onFocus={() => setShowDropdown(true)}
           onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
           autoComplete="off"
+          className="border-gray-300 focus:border-green-500 focus:ring-green-500"
         />
-        {showDropdown && filteredList.length > 0 && (
+        {showDropdown && Array.isArray(filteredList) && filteredList.length > 0 && (
           <ul className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-md z-10 mt-1 max-h-40 overflow-y-auto text-sm">
             {filteredList.map((c) => (
               <li
@@ -186,7 +238,7 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              {reps.map(rep => (
+              {Array.isArray(reps) && reps.map(rep => (
                 <SelectItem key={rep.id} value={String(rep.id)}>
                   {rep.name}
                 </SelectItem>
@@ -207,6 +259,7 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
             setActivePreset('')
             handleChange('startDate', e.target.value)
           }}
+          className="border-gray-300 focus:border-green-500 focus:ring-green-500"
         />
       </div>
 
@@ -221,6 +274,7 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
             setActivePreset('')
             handleChange('endDate', e.target.value)
           }}
+          className="border-gray-300 focus:border-green-500 focus:ring-green-500"
         />
       </div>
 

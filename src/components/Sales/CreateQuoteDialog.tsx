@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,8 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
   const [products, setProducts] = useState<Product[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<number | null>(null)
   const [title, setTitle] = useState('')
+  const [validUntil, setValidUntil] = useState('')
+  const [deliveryDate, setDeliveryDate] = useState('')
   const [items, setItems] = useState<
     { product_id: number; quantity: number; unit_price: number; total_price: number }[]
   >([])
@@ -40,19 +43,59 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
   }, [open])
 
   const fetchCustomers = async () => {
-    const res = await fetch('http://localhost:4000/api/crm/customers', { credentials: 'include' })
-    const data = await res.json()
-    setCustomers(data.customers || [])
+    try {
+      const res = await fetch('http://localhost:4000/api/crm', { credentials: 'include' })
+      if (!res.ok) {
+        throw new Error(`Failed to fetch customers: ${res.status}`)
+      }
+      const data = await res.json()
+      setCustomers(data.customers || [])
+    } catch (error) {
+      console.error('Error fetching customers:', error)
+      toast.error('Failed to load customers')
+    }
   }
 
   const fetchProducts = async () => {
-    const res = await fetch('http://localhost:4000/api/inventory', { credentials: 'include' })
-    const data = await res.json()
-    setProducts(data.products || [])
+    try {
+      const res = await fetch('http://localhost:4000/api/inventory', { credentials: 'include' })
+      if (!res.ok) {
+        throw new Error(`Failed to fetch products: ${res.status}`)
+      }
+      const data = await res.json()
+      setProducts(data.products || [])
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      toast.error('Failed to load products')
+    }
+  }
+
+  const resetForm = () => {
+    setSelectedCustomer(null)
+    setTitle('')
+    setValidUntil('')
+    setDeliveryDate('')
+    setItems([])
+    setLoading(false)
+  }
+
+  const handleClose = () => {
+    resetForm()
+    onClose()
   }
 
   const handleCreate = async () => {
     if (!selectedCustomer || items.length === 0) return
+
+    const payload = {
+      customer_id: selectedCustomer,
+      title,
+      valid_until: validUntil || null,
+      delivery_date: deliveryDate || null,
+      items,
+    }
+    
+    console.log('Creating quote with payload:', payload)
 
     setLoading(true)
     try {
@@ -60,18 +103,21 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_id: selectedCustomer,
-          title,
-          items,
-        }),
+        body: JSON.stringify(payload),
       })
 
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('Server response:', { status: res.status, statusText: res.statusText, errorText })
+        throw new Error(`Failed to create quote (${res.status}): ${errorText}`)
+      }
+      
       toast.success('Quote created')
-      onClose()
       onCreated()
-    } catch {
+      resetForm()
+      onClose()
+    } catch (error) {
+      console.error('Error creating quote:', error)
       toast.error('Failed to create quote')
     } finally {
       setLoading(false)
@@ -80,10 +126,13 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onClose}>
+      <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Create New Quote</DialogTitle>
+            <DialogDescription>
+              Create a new sales quote by selecting a customer and adding products with quantities.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -104,6 +153,27 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
             <div>
               <label className="text-sm font-medium">Quote Title</label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Valid Until</label>
+                <Input 
+                  type="date" 
+                  value={validUntil} 
+                  onChange={(e) => setValidUntil(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Delivery Date</label>
+                <Input 
+                  type="date" 
+                  value={deliveryDate} 
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  className="w-full"
+                />
+              </div>
             </div>
 
             <div>

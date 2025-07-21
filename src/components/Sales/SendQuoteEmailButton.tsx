@@ -26,9 +26,13 @@ export default function SendQuoteEmailButton({ quoteId, customerEmail }: SendQuo
 
   async function checkPDFExists() {
     try {
-      const res = await fetch(`http://localhost:4000/api/email/quote/${quoteId}/pdf`, { method: 'HEAD', credentials: 'include' })
+      const res = await fetch(`http://localhost:4000/api/email/quote/${quoteId}/pdf`, { 
+        method: 'GET', 
+        credentials: 'include' 
+      })
       setHasPDF(res.ok)
-    } catch {
+    } catch (error) {
+      // Silently handle 404 errors - PDF endpoint may not exist
       setHasPDF(false)
     }
   }
@@ -65,9 +69,14 @@ export default function SendQuoteEmailButton({ quoteId, customerEmail }: SendQuo
     }
   }
 
+  const handleOpenDialog = () => {
+    setOpen(true)
+    checkPDFExists()
+  }
+
   return (
     <>
-      <Button size='sm' variant="outline" onClick={() => setOpen(true)}>
+      <Button size='sm' variant="outline" onClick={handleOpenDialog}>
         Email Quote
       </Button>
 

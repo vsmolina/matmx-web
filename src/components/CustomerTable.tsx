@@ -89,9 +89,9 @@ export default function CustomerTable() {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden sm:block">
-        <div className="overflow-x-auto border rounded-md">
-          <table className="min-w-full text-sm">
+      <div className="hidden lg:block">
+        <div className="border rounded-md overflow-x-auto">
+          <table className="w-full text-sm">
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-2 text-left">Name</th>
@@ -103,14 +103,14 @@ export default function CustomerTable() {
               </tr>
             </thead>
             <tbody>
-              {customers.map((cust: any) => (
+              {(customers || []).map((cust: any) => (
                 <tr key={cust.id} className="border-b hover:bg-gray-50">
                   <td className="p-2">{cust.name}</td>
                   <td className="p-2">{cust.company}</td>
                   <td className="p-2">{cust.current_stage || '—'}</td>
                   <td className="p-2">{cust.assigned_user_names?.join(', ') || '—'}</td>
                   <td className="p-2">
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex gap-1 flex-wrap">
                       <Button size="sm" variant="outline" onClick={() => handleOpenTaskDialog(cust)}>+ Task</Button>
                       <Button size="sm" variant="outline" onClick={() => handleOpenViewLogs(cust)}>View Logs</Button>
                       <Link href={`/admin/crm/customers/${cust.id}`}>
@@ -133,9 +133,9 @@ export default function CustomerTable() {
         </div>
       </div>
 
-      {/* Mobile Card View */}
-      <div className="space-y-4 sm:hidden">
-        {customers.map((cust: any) => (
+      {/* Mobile/Tablet Card View */}
+      <div className="space-y-4 lg:hidden">
+        {(customers || []).map((cust: any) => (
           <div key={cust.id} className="border rounded-xl p-4 shadow-sm bg-white">
             <div className="mb-2">
               <p className="text-sm font-semibold text-[#003cc5]">{cust.name}</p>
