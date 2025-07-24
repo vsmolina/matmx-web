@@ -90,15 +90,12 @@ const BarcodeScanner = forwardRef<BarcodeScannerHandle, BarcodeScannerProps>(
 
     useImperativeHandle(ref, () => ({
       stopCamera: () => {
-        console.log('🔴 stopCamera CALLED') // ✅ Add this log
 
         const video = videoRef.current
         if (video && video.srcObject instanceof MediaStream) {
-          console.log('📷 Stopping video tracks...')
           video.srcObject.getTracks().forEach((track) => track.stop())
           video.srcObject = null
         } else {
-          console.log('⚠️ No active media stream to stop')
         }
       }
     }))

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import AdminGuard from '@/components/AdminGuard'
 import ReceivingForm from '@/components/ReceivingForm'
 import InventoryTableViewOnly from '@/components/InventoryTableViewOnly'
@@ -21,10 +21,17 @@ export default function ReceivingPage() {
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0)
   const [showTeraDialog, setShowTeraDialog] = useState(false)
   const [inventorySearch, setInventorySearch] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const { product, loading, error } = useFetchProductByBarcode(scanned)
+  // Loading protection ref
+  const loadingRef = useRef(false)
 
-  const handleScan = (barcode: string) => {
+  const { product, loading: productLoading, error } = useFetchProductByBarcode(scanned)
+
+  // Memoized handlers to prevent excessive re-renders and API calls
+  const handleScan = useCallback((barcode: string) => {
+    if (loadingRef.current) return
+    
     toast.dismiss()
     toast.success(`Scanned: ${barcode}`)
     setScanned(barcode)
@@ -32,25 +39,78 @@ export default function ReceivingPage() {
     setUseTera(false)
     setInputValue('')
     setShowTeraDialog(false)
-  }
+  }, [])
 
-  const reset = () => {
+  const reset = useCallback(() => {
+    if (loadingRef.current) return
+    
     setScanned(null)
     setInputValue('')
     setUseTera(false)
-  }
+  }, [])
 
-  const handleSubmitted = () => {
+  const handleSubmitted = useCallback(() => {
+    if (loadingRef.current) return
+    
     reset()
     setInventoryRefreshKey((prev) => prev + 1)
-  }
+  }, [reset])
 
-  const handleManualScanSubmit = (e: React.FormEvent) => {
+  const handleManualScanSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
-    if (inputValue.trim()) {
-      handleScan(inputValue.trim())
-    }
-  }
+    if (loadingRef.current || !inputValue.trim()) return
+    
+    handleScan(inputValue.trim())
+  }, [inputValue, handleScan])
+
+  // Debounced search handler
+  const debouncedSetInventorySearch = useCallback(
+    useMemo(() => {
+      let timeoutId: NodeJS.Timeout
+      return (value: string) => {
+        clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => {
+          setInventorySearch(value)
+        }, 300)
+      }
+    }, []),
+    []
+  )
+
+  // Modal handlers
+  const handleShowChooseScan = useCallback(() => {
+    if (loadingRef.current) return
+    setShowChooseScan(true)
+  }, [])
+
+  const handleCloseChooseScan = useCallback(() => {
+    setShowChooseScan(false)
+  }, [])
+
+  const handleScanMethodSelect = useCallback((method: string) => {
+    setShowChooseScan(false)
+    if (method === 'camera') setOpenScanner(true)
+    else if (method === 'tera') setShowTeraDialog(true)
+  }, [])
+
+  const handleCloseScanner = useCallback(() => {
+    setOpenScanner(false)
+  }, [])
+
+  const handleCloseTeraDialog = useCallback(() => {
+    setShowTeraDialog(false)
+  }, [])
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value)
+  }, [])
+
+  const handleInventorySearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    debouncedSetInventorySearch(e.target.value)
+  }, [debouncedSetInventorySearch])
+
+  // Update loading ref when productLoading changes
+  loadingRef.current = productLoading || loading
 
   return (
     <AdminGuard allowedRoles={['super_admin', 'inventory_manager', 'warehouse_worker']}>
@@ -78,7 +138,7 @@ export default function ReceivingPage() {
               {/* Mobile Scan Button - Primary Action */}
               <div className="md:hidden">
                 <button 
-                  onClick={() => setShowChooseScan(true)}
+                  onClick={handleShowChooseScan}
                   className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <div className="flex items-center justify-center gap-4">
@@ -98,7 +158,7 @@ export default function ReceivingPage() {
               {/* Desktop Layout */}
               <div className="hidden md:flex flex-col sm:flex-row gap-4 justify-between items-center">
                 <Button 
-                  onClick={() => setShowChooseScan(true)}
+                  onClick={handleShowChooseScan}
                   className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 font-semibold shadow-md hover:shadow-lg transition-all duration-200 px-6 py-3"
                 >
                   <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +170,7 @@ export default function ReceivingPage() {
                   <Input
                     placeholder=""
                     value={inventorySearch}
-                    onChange={(e) => setInventorySearch(e.target.value)}
+                    onChange={handleInventorySearchChange}
                     className="w-full pr-4 h-12 border-2 border-gray-200 focus:border-blue-400"
                   />
                   {!inventorySearch && (
@@ -129,12 +189,8 @@ export default function ReceivingPage() {
               </div>
             <ChooseScanMethodDialog
               open={showChooseScan}
-              onClose={() => setShowChooseScan(false)}
-              onSelect={(method) => {
-                setShowChooseScan(false)
-                if (method === 'camera') setOpenScanner(true)
-                else if (method === 'tera') setShowTeraDialog(true)
-              }}
+              onClose={handleCloseChooseScan}
+              onSelect={handleScanMethodSelect}
             />
           </>
         )}
@@ -146,27 +202,27 @@ export default function ReceivingPage() {
               className="border p-2 rounded w-full"
               placeholder="Scan barcode with Tera scanner"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={handleInputChange}
             />
           </form>
         )}
 
         <ScanBarcodeDialog
           open={openScanner}
-          onClose={() => setOpenScanner(false)}
+          onClose={handleCloseScanner}
           onScanned={handleScan}
         />
 
         <TeraScannerDialog
           open={showTeraDialog}
-          onClose={() => setShowTeraDialog(false)}
+          onClose={handleCloseTeraDialog}
           onScanned={handleScan}
         />
 
         {scanned && (
           <div className="space-y-4">
             {/* Loading State - Mobile Optimized */}
-            {loading && (
+            {productLoading && (
               <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
                 <div className="flex flex-col items-center space-y-4">
                   <div className="relative">
@@ -232,7 +288,7 @@ export default function ReceivingPage() {
           <InventoryTableViewOnly 
             key={inventoryRefreshKey} 
             searchTerm={inventorySearch} 
-            onSearchChange={setInventorySearch}
+            onSearchChange={debouncedSetInventorySearch}
           />
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import SalesTabSwitcher from '@/components/Sales/SalesTabSwitcher'
 import QuoteTable from '@/components/Sales/QuoteTable'
@@ -22,6 +22,8 @@ export default function SalesPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [showFulfilled, setShowFulfilled] = useState(false)
   const [selectedQuoteId, setSelectedQuoteId] = useState<number | null>(null)
+  const [loading, setLoading] = useState(false)
+  const loadingRef = useRef(false)
 
   const [filter, setFilter] = useState<{
     customer: string
@@ -37,33 +39,57 @@ export default function SalesPage() {
     endDate: undefined
   })
 
-  const fetchData = async () => {
-    console.log('fetchData called with reloadKey:', reloadKey)
-    console.log('Current filter:', filter)
-    const query = new URLSearchParams({
-      customer: filter.customer,
-      status: filter.status,
-      repId: filter.repId,
-      startDate: filter.startDate || '',
-      endDate: filter.endDate || ''
-    }).toString()
-    console.log('Query string:', query)
+  // Debounce filter changes
+  const [debouncedFilter, setDebouncedFilter] = useState(filter)
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilter(filter)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [filter])
 
-    const [quoteRes, orderRes] = await Promise.all([
-      fetch(`http://localhost:4000/api/sales/quotes?${query}`, { credentials: 'include' }),
-      fetch(`http://localhost:4000/api/sales/orders?${query}`, { credentials: 'include' })
-    ])
-    const quoteData = await quoteRes.json()
-    const orderData = await orderRes.json()
-    console.log('Fetched quotes:', quoteData.quotes)
-    console.log('Fetched orders:', orderData.orders)
-    setQuotes(quoteData.quotes || [])
-    setOrders(orderData.orders || [])
-  }
+  const fetchData = useCallback(async () => {
+    if (loadingRef.current) return
+    
+    loadingRef.current = true
+    setLoading(true)
+    try {
+      const query = new URLSearchParams({
+        customer: debouncedFilter.customer,
+        status: debouncedFilter.status,
+        repId: debouncedFilter.repId,
+        startDate: debouncedFilter.startDate || '',
+        endDate: debouncedFilter.endDate || ''
+      }).toString()
+
+      const [quoteRes, orderRes] = await Promise.all([
+        fetch(`http://localhost:4000/api/sales/quotes?${query}`, { credentials: 'include' }),
+        fetch(`http://localhost:4000/api/sales/orders?${query}`, { credentials: 'include' })
+      ])
+      const quoteData = await quoteRes.json()
+      const orderData = await orderRes.json()
+      setQuotes(quoteData.quotes || [])
+      setOrders(orderData.orders || [])
+    } catch (error) {
+      console.error('Error fetching sales data:', error)
+      setQuotes([])
+      setOrders([])
+    } finally {
+      loadingRef.current = false
+      setLoading(false)
+    }
+  }, [debouncedFilter])
+
+  const handleDataUpdate = useCallback(() => {
+    if (!loadingRef.current) {
+      setReloadKey(k => k + 1)
+    }
+  }, [])
 
   useEffect(() => {
     fetchData()
-  }, [reloadKey, filter])
+  }, [reloadKey, fetchData])
 
 
 
@@ -86,13 +112,15 @@ export default function SalesPage() {
                     View Fulfilled Orders
                   </Button>
                 )}
-                <Button 
-                  onClick={() => setShowCreate(true)}
-                  className="flex-1 sm:flex-none bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-sm"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Quote
-                </Button>
+{tab === 'quotes' && (
+                  <Button 
+                    onClick={() => setShowCreate(true)}
+                    className="flex-1 sm:flex-none bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Quote
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -119,7 +147,7 @@ export default function SalesPage() {
                   <QuoteTable
                     quotes={quotes}
                     onView={(quoteId) => setSelectedQuoteId(quoteId)}
-                    onConvert={() => setReloadKey((k) => k + 1)}
+                    onConvert={handleDataUpdate}
                   />
                 </div>
               </div>
@@ -141,7 +169,7 @@ export default function SalesPage() {
                 <div className="p-4 sm:p-6">
                   <OrderTable
                     orders={orders}
-                    onUpdated={() => setReloadKey((k) => k + 1)}
+                    onUpdated={handleDataUpdate}
                   />
                 </div>
               </div>
@@ -152,10 +180,7 @@ export default function SalesPage() {
           <CreateQuoteDialog
             open={showCreate}
             onClose={() => setShowCreate(false)}
-            onCreated={() => {
-              console.log('onCreated called, incrementing reloadKey')
-              setReloadKey((k) => k + 1)
-            }}
+            onCreated={handleDataUpdate}
           />
 
           <FulfilledOrdersDialog
@@ -168,7 +193,7 @@ export default function SalesPage() {
               quoteId={selectedQuoteId}
               open={true}
               onClose={() => setSelectedQuoteId(null)}
-              onUpdated={() => setReloadKey((k) => k + 1)}
+              onUpdated={handleDataUpdate}
             />
           )}
         </div>

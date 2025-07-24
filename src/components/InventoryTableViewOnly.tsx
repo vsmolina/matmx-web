@@ -25,7 +25,6 @@ export default function InventoryTableViewOnly({ searchTerm = '', onSearchChange
         credentials: 'include',
       })
       const data = await res.json()
-      console.log('Inventory API response:', data)
       
       // Handle different possible response structures
       let productData = []

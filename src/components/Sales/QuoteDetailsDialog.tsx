@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react'
 import LineItemEditor from './LineItemEditor'
 import PriceSummaryBox from './PriceSummaryBox'
 import { toast } from 'react-hot-toast'
+import { Edit, FileText } from 'lucide-react'
 
 interface QuoteItem {
   product_id: number
@@ -65,7 +66,6 @@ export default function QuoteDetailsDialog({
     })
       .then(res => res.json())
       .then(data => {
-        console.log('Quote data:', data)
         setQuote(data)
         setLoading(false)
       })
@@ -99,28 +99,50 @@ export default function QuoteDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="w-full h-screen sm:max-w-3xl sm:h-auto p-0">
-        <div className="relative px-4 pt-4 pb-2 sm:px-6 sm:pt-6 sm:pb-0">
-          <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl">
-              {loading ? 'Loading...' : quote ? `Edit Quote #${quote.id}` : 'Quote Details'}
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              Edit quote information and line items
-            </DialogDescription>
-          </DialogHeader>
+      <DialogContent className="w-[90vw] max-w-3xl mx-auto rounded-2xl overflow-hidden p-0 md:w-[800px] md:max-w-none [&>button]:hidden">
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
+                <FileText className="h-6 w-6" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold">
+                  {loading ? 'Loading...' : quote ? `Edit Quote #${quote.id}` : 'Quote Details'}
+                </DialogTitle>
+                <p className="text-green-100 text-sm mt-1">
+                  {quote?.customer_name ? `Customer: ${quote.customer_name}` : 'Edit quote information and line items'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {loading ? (
-          <div className="overflow-y-auto h-[calc(100vh-64px)] px-4 sm:px-6 space-y-6 pb-6">
-            <div className="text-center py-8">Loading quote details...</div>
-          </div>
-        ) : !quote ? (
-          <div className="overflow-y-auto h-[calc(100vh-64px)] px-4 sm:px-6 space-y-6 pb-6">
-            <div className="text-center py-8 text-red-500">Failed to load quote details</div>
-          </div>
-        ) : (
-          <div className="overflow-y-auto h-[calc(100vh-64px)] px-4 sm:px-6 space-y-6 pb-6">
+        {/* Content */}
+        <div className="p-6">
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading quote details...</p>
+            </div>
+          ) : !quote ? (
+            <div className="text-center py-8">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="text-red-600 font-medium">Failed to load quote details</div>
+                <p className="text-red-500 text-sm mt-1">Please try again or contact support</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6 max-h-[60vh] overflow-y-auto">
           {/* Static Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded-lg">
             <div>
@@ -191,11 +213,26 @@ export default function QuoteDetailsDialog({
             ${total.toFixed(2)}
           </div>
 
-          <Button onClick={handleSave} className="w-full mt-4">
-            Save Changes
-          </Button>
-          </div>
-        )}
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              className="flex-1 h-12 border-2 border-gray-300 hover:border-gray-400 rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSave}
+              className="flex-1 h-12 bg-green-600 hover:bg-green-700 rounded-xl"
+            >
+              Save Changes
+            </Button>
+            </div>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )

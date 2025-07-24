@@ -93,7 +93,6 @@ export default function QuoteTable({
                 <td className="px-4 py-2 text-right">${total.toFixed(2)}</td>
                 <td className="px-4 py-2 text-right space-x-1">
                   <Button size="sm" variant="outline" onClick={() => {
-                    console.log('View button clicked for quote:', quote.id)
                     onView(quote.id)
                   }}>View</Button>
                   <GenerateOrViewPDFButton quoteId={quote.id} />

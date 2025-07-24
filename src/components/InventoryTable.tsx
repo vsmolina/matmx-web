@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ChevronDown, Settings, Info } from 'lucide-react'
@@ -93,13 +93,25 @@ export default function InventoryTable() {
   const [filtered, setFiltered] = useState<ProductVendorStock[]>([])
   const [mergedProducts, setMergedProducts] = useState<MergedProduct[]>([])
   const [search, setSearch] = useState('')
-  const [loadingData, setLoadingData] = useState(true)
+  const [loadingData, setLoadingData] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('separate')
   const router = useRouter()
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
   const [openDropdowns, setOpenDropdowns] = useState<{
     [key: string]: 'vendors' | 'prices' | null
   }>({})
+  
+  const loadingRef = useRef(false)
+
+  // Debounce search to prevent excessive filtering
+  const [debouncedSearch, setDebouncedSearch] = useState(search)
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const toggleDropdown = (productSku: string, type: 'vendors' | 'prices') => {
     setOpenDropdowns(prev => ({
@@ -115,13 +127,19 @@ export default function InventoryTable() {
     }))
   }
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
+    // Prevent multiple simultaneous requests
+    if (loadingRef.current) {
+      return
+    }
+    
+    loadingRef.current = true
+    setLoadingData(true)
     try {
       const res = await fetch('http://localhost:4000/api/inventory', {
         credentials: 'include',
       })
       const data = await res.json()
-      console.log('Inventory API response:', data)
       
       // Handle different possible response structures
       let products = []
@@ -145,9 +163,24 @@ export default function InventoryTable() {
       setFiltered([])
       setMergedProducts([])
     } finally {
+      loadingRef.current = false
       setLoadingData(false)
     }
-  }
+  }, [])
+
+  // Optimized handlers to prevent excessive API calls
+  const handleInventoryUpdate = useCallback(() => {
+    if (!loadingRef.current) {
+      fetchProducts()
+      setHistoryRefreshKey(prev => prev + 1)
+    }
+  }, [fetchProducts])
+
+  const handleProductUpdate = useCallback(() => {
+    if (!loadingRef.current) {
+      fetchProducts()
+    }
+  }, [fetchProducts])
 
   const createMergedProducts = (products: ProductVendorStock[]): MergedProduct[] => {
     const productMap = new Map<string, MergedProduct>()
@@ -191,7 +224,7 @@ export default function InventoryTable() {
     if (!loading && user) {
       fetchProducts()
     }
-  }, [loading, user])
+  }, [loading, user, fetchProducts])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -213,7 +246,7 @@ export default function InventoryTable() {
         return
       }
       
-      const q = search.toLowerCase()
+      const q = debouncedSearch.toLowerCase()
       const f = rows.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
@@ -222,12 +255,12 @@ export default function InventoryTable() {
       )
       setFiltered(f)
     }
-  }, [search, rows, viewMode])
+  }, [debouncedSearch, rows, viewMode])
 
-  const getFilteredMergedProducts = () => {
+  const getFilteredMergedProducts = useCallback(() => {
     if (!mergedProducts || mergedProducts.length === 0) return []
     
-    const q = search.toLowerCase()
+    const q = debouncedSearch.toLowerCase()
     return mergedProducts.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
@@ -235,7 +268,7 @@ export default function InventoryTable() {
         p.vendor.toLowerCase().includes(q) ||
         p.vendors.some(v => v.vendor_name.toLowerCase().includes(q))
     )
-  }
+  }, [mergedProducts, debouncedSearch])
 
   if (loading || loadingData) return <div className="p-4">Loading inventory...</div>
   if (!user) return <div className="p-4">Unauthorized</div>
@@ -247,7 +280,7 @@ export default function InventoryTable() {
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">Inventory Management</h1>
           <Input
-            placeholder="Search by name, SKU, or vendor..."
+            placeholder="Search by name, SKU / Part #, or vendor..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-white/80 border-blue-200 focus:border-blue-400"
@@ -285,7 +318,7 @@ export default function InventoryTable() {
         <div className="grid grid-cols-2 gap-3">
           <ProductModal
             mode="add"
-            onSave={fetchProducts}
+            onSave={handleProductUpdate}
             trigger={
               <Button className="w-full h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 font-semibold shadow-md hover:shadow-lg transition-all duration-200">
                 Add Product
@@ -296,7 +329,7 @@ export default function InventoryTable() {
         </div>
         
         <div className="grid grid-cols-2 gap-3">
-          <ImportCSVModal onSuccess={fetchProducts} />
+          <ImportCSVModal onSuccess={handleProductUpdate} />
           {user?.role === 'super_admin' && <ImportLogDialog />}
         </div>
       </div>
@@ -308,7 +341,7 @@ export default function InventoryTable() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <Input
-                placeholder="Search by name, SKU, or vendor..."
+                placeholder="Search by name, SKU / Part #, or vendor..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-80 bg-white/80 border-blue-200 focus:border-blue-400"
@@ -342,7 +375,7 @@ export default function InventoryTable() {
             <div className="flex items-center gap-3">
               <ProductModal
                 mode="add"
-                onSave={fetchProducts}
+                onSave={handleProductUpdate}
                 trigger={
                   <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 font-semibold shadow-md hover:shadow-lg transition-all duration-200">
                     Add Product
@@ -350,7 +383,7 @@ export default function InventoryTable() {
                 }
               />
               <ExportCSVButton />
-              <ImportCSVModal onSuccess={fetchProducts} />
+              <ImportCSVModal onSuccess={handleProductUpdate} />
               {user?.role === 'super_admin' && <ImportLogDialog />}
             </div>
           </div>
@@ -484,20 +517,16 @@ export default function InventoryTable() {
                     vendorId={row.vendor_id}
                     vendorName={row.vendor}
                     currentStock={row.quantity}
-                    onSave={() => {
-                      fetchProducts()
-                      setHistoryRefreshKey(prev => prev + 1)
-                    }}
+                    onSave={handleInventoryUpdate}
                     trigger={
-                      <Tooltip content="Adjust Inventory" delay={750}>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="h-10 w-10 bg-white border-2 border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 ease-out p-0"
-                        >
-                          <Settings className="h-4 w-4" />
-                        </Button>
-                      </Tooltip>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="h-10 w-10 bg-white border-2 border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 ease-out p-0"
+                        title="Adjust Inventory"
+                      >
+                        <Settings className="h-4 w-4" />
+                      </Button>
                     }
                   />
                   <ProductDetailsButton
@@ -510,7 +539,7 @@ export default function InventoryTable() {
                       category: row.category,
                       quantity: row.quantity
                     }}
-                    onSave={fetchProducts}
+                    onSave={handleProductUpdate}
                     trigger={
                       <Tooltip content="Product Details" delay={750}>
                         <Button 
@@ -756,16 +785,11 @@ export default function InventoryTable() {
                         vendorId={row.vendor_id}
                         vendorName={row.vendor}
                         currentStock={row.quantity}
-                        onSave={() => {
-                          fetchProducts()
-                          setHistoryRefreshKey(prev => prev + 1)
-                        }}
+                        onSave={handleInventoryUpdate}
                         trigger={
-                          <Tooltip content="Adjust Inventory" delay={750}>
-                            <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                              <Settings className="h-4 w-4" />
-                            </Button>
-                          </Tooltip>
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Adjust Inventory">
+                            <Settings className="h-4 w-4" />
+                          </Button>
                         }
                       />
                       <ProductDetailsButton
@@ -778,7 +802,7 @@ export default function InventoryTable() {
                           category: row.category,
                           quantity: row.quantity
                         }}
-                        onSave={fetchProducts}
+                        onSave={handleProductUpdate}
                         trigger={
                           <Tooltip content="Product Details" delay={750}>
                             <Button variant="outline" size="sm" className="h-8 w-8 p-0">
@@ -911,19 +935,39 @@ export default function InventoryTable() {
                   <td className="px-4 py-2">
                     {row.selling_price ? `$${Number(row.selling_price).toFixed(2)}` : '—'}
                   </td>
-                  <td className="px-4 py-2 space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push(`/admin/products/${row.product_id}`)}
-                    >
-                      Profile
-                    </Button>
-                    <InventoryHistoryDialog
-                      productId={row.product_id}
-                      role={user.role}
-                      refreshKey={historyRefreshKey}
-                    />
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-1">
+                      {row.vendors.map((vendor) => (
+                        <AdjustInventoryModal
+                          key={`${row.product_id}-${vendor.vendor_id}`}
+                          productId={row.product_id}
+                          vendorId={vendor.vendor_id}
+                          vendorName={vendor.vendor_name}
+                          currentStock={vendor.quantity}
+                          onSave={handleInventoryUpdate}
+                          trigger={
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0" title={`Adjust ${vendor.vendor_name} Stock`}>
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/admin/products/${row.product_id}`)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </Button>
+                      <InventoryHistoryDialog
+                        productId={row.product_id}
+                        role={user.role}
+                        refreshKey={historyRefreshKey}
+                      />
+                    </div>
                   </td>
                 </tr>
               )) : (

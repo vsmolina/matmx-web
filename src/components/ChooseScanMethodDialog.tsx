@@ -56,7 +56,7 @@ export default function ChooseScanMethodDialog({ open, onSelect, onClose }: Prop
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
-      <DialogContent className="max-w-md mx-auto m-4 rounded-2xl overflow-hidden p-0">
+      <DialogContent className="max-w-md w-[95vw] sm:w-full mx-auto rounded-2xl p-0">
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
           <div className="flex items-center gap-3">

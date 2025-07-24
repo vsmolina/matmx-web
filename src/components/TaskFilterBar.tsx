@@ -2,7 +2,7 @@
 
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Search, Filter } from 'lucide-react'
 
 export default function TaskFilterBar({
@@ -17,12 +17,33 @@ export default function TaskFilterBar({
   onChange: (newFilters: { customerName: string; status: string; due: string }) => void
 }) {
   const [localFilters, setLocalFilters] = useState(filters)
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
-  const handleUpdate = (key: string, value: string) => {
+  const handleUpdate = useCallback((key: string, value: string) => {
     const updated = { ...localFilters, [key]: value }
     setLocalFilters(updated)
-    onChange(updated)
-  }
+    
+    // Debounce customer name search, immediate update for other filters
+    if (key === 'customerName') {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+      debounceRef.current = setTimeout(() => {
+        onChange(updated)
+      }, 300)
+    } else {
+      onChange(updated)
+    }
+  }, [localFilters, onChange])
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+    }
+  }, [])
 
   return (
     <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 overflow-hidden">

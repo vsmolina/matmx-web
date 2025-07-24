@@ -62,7 +62,6 @@ export default function OrderDetailsDialog({ orderId, open, onClose, onUpdated }
     fetch(`http://localhost:4000/api/sales/orders/${orderId}`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
-        console.log('Order data:', data)
         setOrder(data)
         setLoading(false)
       })

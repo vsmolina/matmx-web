@@ -40,7 +40,7 @@ export default function TeraScannerDialog({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-lg mx-auto m-4 rounded-2xl overflow-hidden p-0">
+      <DialogContent className="max-w-lg w-[95vw] sm:w-full mx-auto rounded-2xl p-0" hideCloseButton>
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6">
           <div className="flex items-center justify-between">

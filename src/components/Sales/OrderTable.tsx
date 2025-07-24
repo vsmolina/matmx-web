@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { formatDate } from '@/lib/date'
 import { toast } from 'react-hot-toast'
 import { Calendar, Check, X, ShoppingCart } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 type FulfillmentStatus = 'draft' | 'received' | 'packed' | 'fulfilled'
 
@@ -25,9 +26,6 @@ export default function OrderTable({
   const [editingFulfillmentId, setEditingFulfillmentId] = useState<number | null>(null)
   const [tempDate, setTempDate] = useState<string>('')
 
-  console.log('All orders:', orders)
-  console.log('Active orders:', activeOrders)
-  console.log('Selected order ID:', selectedOrderId)
 
   const updateStatus = async (orderId: number, newStatus: FulfillmentStatus) => {
     try {
@@ -88,7 +86,6 @@ export default function OrderTable({
     setTempDate('')
   }
 
-  console.log('Active Orders:', activeOrders)
 
   return (
     <>
@@ -191,15 +188,15 @@ export default function OrderTable({
                   )}
                 </td>
                 <td className="px-4 py-2">
-                  <button
-                    className="text-blue-600 hover:underline"
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
                     onClick={() => {
-                      console.log('View button clicked for order:', order.id)
                       setSelectedOrderId(order.id)
                     }}
                   >
                     View
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import TaskFilterBar from '@/components/TaskFilterBar'
 import TaskGroupByRep from '@/components/TaskGroupByRep'
 import TaskDialog from '@/components/TaskDialog'
@@ -17,6 +17,8 @@ export default function CRMTaskPage() {
     status: 'all',
     due: 'all'
   })
+  const [loading, setLoading] = useState(false)
+  const loadingRef = useRef(false)
   const [taskDialogCustomerId, setTaskDialogCustomerId] = useState<number | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
@@ -24,26 +26,38 @@ export default function CRMTaskPage() {
   const { user } = useUser()
   const router = useRouter()
 
-  const loadTasks = async () => {
-    const res = await fetch('http://localhost:4000/api/crm/tasks/grouped', { 
-      credentials: 'include' 
-    })
-    const data = await res.json()
-    setGroupedTasks(data.groupedTasks)
-  }
+  const loadTasks = useCallback(async () => {
+    if (loadingRef.current) return
+    
+    loadingRef.current = true
+    setLoading(true)
+    
+    try {
+      const res = await fetch('http://localhost:4000/api/crm/tasks/grouped', { 
+        credentials: 'include' 
+      })
+      const data = await res.json()
+      setGroupedTasks(data.groupedTasks)
+    } catch (error) {
+      console.error('Failed to load tasks:', error)
+    } finally {
+      loadingRef.current = false
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    if (user) {
+    if (user && !loadingRef.current) {
       loadTasks()
     }
-  }, [user])
+  }, [user, loadTasks])
 
-  const handleCreateClick = (customerId: number) => {
+  const handleCreateClick = useCallback((customerId: number) => {
     setTaskDialogCustomerId(customerId)
     setDialogOpen(true)
-  }
+  }, [])
 
-  const filterTasks = (tasks: any[]) => {
+  const filterTasks = useCallback((tasks: any[]) => {
     return tasks.filter((task) => {
       const matchStatus =
         filters.status === 'all' || task.status.toLowerCase() === filters.status
@@ -55,7 +69,26 @@ export default function CRMTaskPage() {
         (filters.due === 'next7' && new Date(task.due_date) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
       return matchStatus && matchCustomer && matchDue
     })
-  }
+  }, [filters])
+
+  // Memoized filtered tasks to prevent unnecessary re-renders
+  const filteredGroupedTasks = useMemo(() => {
+    return groupedTasks.map((rep) => ({
+      ...rep,
+      customers: rep.customers.map(c => ({
+        ...c,
+        tasks: filterTasks(c.tasks || [])
+      }))
+    }))
+  }, [groupedTasks, filterTasks])
+
+  // Memoized handlers
+  const handleShowCompleted = useCallback(() => setShowCompleted(true), [])
+  const handleTaskDialogSuccess = useCallback(() => {
+    setDialogOpen(false)
+    setTaskDialogCustomerId(null)
+    loadTasks()
+  }, [loadTasks])
 
   if (!user) return <p>Loading...</p>
 
@@ -82,7 +115,7 @@ export default function CRMTaskPage() {
             </div>
             <Button 
               variant="outline" 
-              onClick={() => setShowCompleted(true)}
+              onClick={handleShowCompleted}
               className="flex items-center gap-2 w-full sm:w-auto text-sm"
             >
               <History className="w-4 h-4" />
@@ -96,16 +129,10 @@ export default function CRMTaskPage() {
 
         {/* Tasks Section */}
         <div className="space-y-4 sm:space-y-6">
-          {groupedTasks.map((rep) => (
+          {filteredGroupedTasks.map((rep) => (
             <TaskGroupByRep
               key={rep.rep_id}
-              rep={{
-                ...rep,
-                customers: rep.customers.map(c => ({
-                  ...c,
-                  tasks: filterTasks(c.tasks)
-                }))
-              }}
+              rep={rep}
               currentUserId={user.userId}
               isSuperAdmin={user.role === 'super_admin'}
               onCreateTask={handleCreateClick}
@@ -119,11 +146,7 @@ export default function CRMTaskPage() {
           customerId={taskDialogCustomerId}
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          onSuccess={() => {
-            setDialogOpen(false)
-            setTaskDialogCustomerId(null)
-            loadTasks()
-          }}
+          onSuccess={handleTaskDialogSuccess}
         />
       )}
 

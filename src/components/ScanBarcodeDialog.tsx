@@ -43,7 +43,7 @@ export default function ScanBarcodeDialog({ open, onClose, onScanned }: ScanBarc
     <Dialog open={open} onOpenChange={(isOpen) => {
       if (!isOpen) handleClose()
     }}>
-      <DialogContent className="max-w-lg mx-auto m-4 rounded-2xl overflow-hidden p-0">
+      <DialogContent className="max-w-lg w-[95vw] sm:w-full mx-auto rounded-2xl p-0">
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
           <div className="flex items-center justify-between">

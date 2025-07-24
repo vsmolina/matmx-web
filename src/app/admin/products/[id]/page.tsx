@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useUser } from '@/context/UserContext'
@@ -19,31 +19,42 @@ import {
 function BarcodeImage({ productId }: { productId: number }) {
   const [barcodeUrl, setBarcodeUrl] = useState<string | null>(null)
   const [error, setError] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const loadingRef = useRef(false)
 
-  useEffect(() => {
-    const fetchBarcode = async () => {
-      try {
-        const response = await fetch(`http://localhost:4000/api/inventory/${productId}/barcode.png`, {
-          credentials: 'include',
-          headers: {
-            'Accept': 'image/png',
-          }
-        })
-        
-        if (response.ok) {
-          const blob = await response.blob()
-          const url = URL.createObjectURL(blob)
-          setBarcodeUrl(url)
-        } else {
-          setError(true)
+  const fetchBarcode = useCallback(async () => {
+    if (loadingRef.current) return
+    
+    loadingRef.current = true
+    setLoading(true)
+    try {
+      const response = await fetch(`http://localhost:4000/api/inventory/${productId}/barcode.png`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'image/png',
         }
-      } catch (err) {
-        console.error('Error fetching barcode:', err)
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        setBarcodeUrl(url)
+      } else {
         setError(true)
       }
+    } catch (err) {
+      console.error('Error fetching barcode:', err)
+      setError(true)
+    } finally {
+      loadingRef.current = false
+      setLoading(false)
     }
+  }, [productId])
 
-    fetchBarcode()
+  useEffect(() => {
+    if (productId && !loading && !barcodeUrl && !error) {
+      fetchBarcode()
+    }
     
     // Cleanup URL object when component unmounts
     return () => {
@@ -51,7 +62,7 @@ function BarcodeImage({ productId }: { productId: number }) {
         URL.revokeObjectURL(barcodeUrl)
       }
     }
-  }, [productId])
+  }, [productId, loading, barcodeUrl, error, fetchBarcode])
 
   if (error) {
     return (
@@ -219,8 +230,14 @@ export default function ProductProfilePage() {
     value: string | number
     sku: string
   } | null>(null)
+  
+  const loadingRef = useRef(false)
 
-  const fetchProductProfile = async () => {
+  const fetchProductProfile = useCallback(async () => {
+    if (loadingRef.current || !productId) return
+    
+    loadingRef.current = true
+    setLoading(true)
     try {
       // First, try to get the product by ID to get the SKU
       const productRes = await fetch(`http://localhost:4000/api/inventory/${productId}`, {
@@ -248,8 +265,11 @@ export default function ProductProfilePage() {
       setVendorInfos(data.vendors)
     } catch (err) {
       console.error('Error fetching product profile:', err)
+    } finally {
+      loadingRef.current = false
+      setLoading(false)
     }
-  }
+  }, [productId])
 
   const updateProductField = async (field: string, value: string | number) => {
     if (!product) return
@@ -321,12 +341,40 @@ export default function ProductProfilePage() {
     }
   }
 
-  useEffect(() => {
-    if (user && productId) {
-      fetchProductProfile()
-      setLoading(false)
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!product || loadingRef.current) return
+    
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      const res = await fetch(`http://localhost:4000/api/inventory/${product.id}/image`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+      if (res.ok) {
+        await fetchProductProfile()
+        toast.success('Image uploaded successfully')
+      } else {
+        toast.error('Failed to upload image')
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      toast.error('Failed to upload image')
     }
-  }, [user, productId])
+  }, [product, fetchProductProfile])
+
+  const handleVendorTermsUpdate = useCallback(() => {
+    if (!loadingRef.current) {
+      fetchProductProfile()
+    }
+  }, [fetchProductProfile])
+
+  useEffect(() => {
+    if (user && productId && !loadingRef.current) {
+      fetchProductProfile()
+    }
+  }, [user, productId, fetchProductProfile])
 
   if (!user) return <div className="p-6">Unauthorized</div>
   if (loading || !product) return <div className="p-6">Loading product...</div>
@@ -394,17 +442,11 @@ export default function ProductProfilePage() {
               </div>
             )}
             <form
-              onChange={async (e) => {
+              onChange={(e) => {
                 const file = (e.target as HTMLInputElement).files?.[0]
-                if (!file) return
-                const formData = new FormData()
-                formData.append('image', file)
-                const res = await fetch(`http://localhost:4000/api/inventory/${product.id}/image`, {
-                  method: 'POST',
-                  credentials: 'include',
-                  body: formData,
-                })
-                if (res.ok) fetchProductProfile()
+                if (file) {
+                  handleImageUpload(file)
+                }
               }}
               className="space-y-2"
             >
@@ -541,7 +583,7 @@ export default function ProductProfilePage() {
                           payment_terms: info.payment_terms,
                           notes: info.vendor_notes
                         }}
-                        onSaved={fetchProductProfile}
+                        onSaved={handleVendorTermsUpdate}
                         trigger={
                           <Button 
                             size="sm" 
@@ -646,7 +688,7 @@ export default function ProductProfilePage() {
                     payment_terms: info.payment_terms,
                     notes: info.vendor_notes
                   }}
-                  onSaved={fetchProductProfile}
+                  onSaved={handleVendorTermsUpdate}
                   trigger={
                     <Button 
                       size="sm" 

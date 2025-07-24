@@ -11,7 +11,7 @@ import { useState, useRef, useEffect } from 'react'
 export default function AdminNavbar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, loading } = useUser()
+  const { user, loading, refreshUser } = useUser()
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -24,7 +24,10 @@ export default function AdminNavbar() {
     })
 
     if (res.ok) {
-      router.push('/')
+      // Clear any cached user data by refreshing
+      await refreshUser()
+      // Redirect to login page
+      router.push('/admin/login')
     }
   }
 
@@ -42,7 +45,6 @@ export default function AdminNavbar() {
       { href: '/admin/documents', label: 'Documents'},
     ],
     inventory_manager: [
-      { href: '/admin', label: 'Dashboard' },
       { href: '/admin/products', label: 'Products' },
       { href: '/admin/vendors', label: 'Vendors' },
       { href: '/admin/receiving', label: 'Receiving'},
@@ -53,7 +55,6 @@ export default function AdminNavbar() {
       { href: '/admin/sales', label: 'Quotes & Orders' },
     ],
     sales_rep: [
-      { href: '/admin', label: 'Dashboard' },
       { href: '/admin/products', label: 'Products' },
       { href: '/admin/crm', label: 'Customers' },
       { href: '/admin/sales', label: 'Quotes & Orders' },

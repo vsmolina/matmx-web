@@ -121,7 +121,6 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
       
       if (!res.ok) {
         if (res.status === 404) {
-          console.log('No barcode found for product')
         } else {
           console.error('Failed to fetch barcode, status:', res.status)
         }
@@ -355,10 +354,6 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
         return;
       }
       
-      console.log('Submitting payload:', payload);
-      console.log('Product ID:', defaultValues?.id);
-      console.log('Selling price in payload:', payload.selling_price);
-      console.log('Mode:', mode);
       
       const res = await fetch(
         mode === 'add'
@@ -377,7 +372,6 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
         
         // Handle price conflict (expected behavior, don't log as error)
         if (res.status === 409 && errorData.error === 'PRICE_CONFLICT') {
-          console.log('Price conflict detected, showing confirmation dialog')
           setPriceConflict({
             show: true,
             data: errorData,

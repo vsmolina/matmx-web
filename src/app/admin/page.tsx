@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useUser } from '@/context/UserContext'
 import { BarChart3, TrendingUp, Package, Users, DollarSign, Activity } from 'lucide-react'
 import RevenueByProductChart from '@/components/dashboard/RevenueByProductChart'
@@ -7,11 +8,57 @@ import ProfitByProductChart from '@/components/dashboard/ProfitByProductChart'
 import ProfitMarginChart from '@/components/dashboard/ProfitMarginChart'
 import RevenueVsProfitChart from '@/components/dashboard/RevenueVsProfitChart'
 import StockOverTimeChart from '@/components/dashboard/StockOverTimeChart'
-import VendorTable from '@/components/dashboard/VendorTable'
-import InventoryAdjustmentTable from '@/components/dashboard/InventoryAdjustmentTable'
+import OrdersByStatusChart from '@/components/dashboard/OrdersByStatusChart'
+import TopSellingProductsChart from '@/components/dashboard/TopSellingProductsChart'
+import CustomerGrowthChart from '@/components/dashboard/CustomerGrowthChart'
+import InventoryLevelsChart from '@/components/dashboard/InventoryLevelsChart'
+import RecentOrdersTable from '@/components/dashboard/RecentOrdersTable'
+import LowStockProductsTable from '@/components/dashboard/LowStockProductsTable'
+
+interface DashboardStats {
+  revenue: { value: number; growth: number }
+  orders: { value: number; growth: number }
+  customers: { value: number; growth: number }
+  products: { value: number; growth: number }
+}
 
 export default function AdminDashboardPage() {
-  const { user } = useUser()
+  const { user, loading: userLoading } = useUser()
+  const [stats, setStats] = useState<DashboardStats>({
+    revenue: { value: 0, growth: 0 },
+    orders: { value: 0, growth: 0 },
+    customers: { value: 0, growth: 0 },
+    products: { value: 0, growth: 0 }
+  })
+  const [loading, setLoading] = useState(true)
+  const loadingRef = useRef(false)
+
+  const fetchDashboardStats = useCallback(async () => {
+    if (loadingRef.current || !user) return
+    
+    loadingRef.current = true
+    setLoading(true)
+    try {
+      const response = await fetch('http://localhost:4000/api/dashboard/stats', {
+        credentials: 'include'
+      })
+      const data = await response.json()
+      if (data.success) {
+        setStats(data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error)
+    } finally {
+      loadingRef.current = false
+      setLoading(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (!userLoading && user) {
+      fetchDashboardStats()
+    }
+  }, [userLoading, user, fetchDashboardStats])
 
   const getGreeting = () => {
     const hour = new Date().getHours()
@@ -58,10 +105,12 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm font-medium">Revenue</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">$24.5K</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  ${loading ? '...' : (stats.revenue.value / 1000).toFixed(1)}K
+                </p>
                 <p className="text-green-600 text-xs mt-1 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
-                  +12.5%
+                  +{stats.revenue.growth}%
                 </p>
               </div>
               <div className="bg-blue-100 rounded-xl p-3">
@@ -74,10 +123,12 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm font-medium">Orders</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">142</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {loading ? '...' : stats.orders.value}
+                </p>
                 <p className="text-green-600 text-xs mt-1 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
-                  +8.2%
+                  +{stats.orders.growth}%
                 </p>
               </div>
               <div className="bg-green-100 rounded-xl p-3">
@@ -90,10 +141,12 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm font-medium">Customers</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">89</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {loading ? '...' : stats.customers.value}
+                </p>
                 <p className="text-blue-600 text-xs mt-1 flex items-center gap-1">
                   <Activity className="h-3 w-3" />
-                  +5.1%
+                  +{stats.customers.growth}%
                 </p>
               </div>
               <div className="bg-purple-100 rounded-xl p-3">
@@ -106,7 +159,9 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm font-medium">Stock Items</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">1,247</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {loading ? '...' : stats.products.value}
+                </p>
                 <p className="text-gray-500 text-xs mt-1">Active SKUs</p>
               </div>
               <div className="bg-orange-100 rounded-xl p-3">
@@ -130,16 +185,16 @@ export default function AdminDashboardPage() {
               <RevenueByProductChart />
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <ProfitByProductChart />
+              <OrdersByStatusChart />
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <ProfitMarginChart />
+              <TopSellingProductsChart />
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <RevenueVsProfitChart />
+              <CustomerGrowthChart />
             </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 md:col-span-2 p-6">
-              <StockOverTimeChart />
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <InventoryLevelsChart />
             </div>
           </div>
         </div>
@@ -155,10 +210,10 @@ export default function AdminDashboardPage() {
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <VendorTable />
+              <RecentOrdersTable />
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <InventoryAdjustmentTable />
+              <LowStockProductsTable />
             </div>
           </div>
         </div>

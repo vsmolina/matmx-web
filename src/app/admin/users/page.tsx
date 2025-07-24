@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/context/UserContext'
 import toast from 'react-hot-toast'
@@ -37,8 +37,8 @@ export default function ManageUsersPage() {
   const { user: currentUser } = useUser()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const loadingRef = useRef(false)
 
-  console.log('Current user in ManageUsersPage:', currentUser)
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [resetModalOpen, setResetModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -51,60 +51,49 @@ export default function ManageUsersPage() {
   const [role, setRole] = useState('sales_rep')
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
-
   const router = useRouter()
 
-  useEffect(() => {
-    fetchUsers()
-
-    // Fetch current user ID
-    fetch('http://localhost:4000/api/me', {
-        credentials: 'include',
-    })
-        .then((res) => res.json())
-        .then((data) => setCurrentUserId(data.user?.userId || null))
-  }, [])
-
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
+    if (loadingRef.current) return
+    loadingRef.current = true
     setLoading(true)
+    
     try {
-      console.log('Fetching users...')
       const res = await fetch('http://localhost:4000/api/admin/users?page=1&limit=50&sort=name&order=asc', {
         credentials: 'include',
       })
-      console.log('Response status:', res.status)
       if (!res.ok) {
         const errorData = await res.json()
-        console.log('Error response:', errorData)
-        console.log('Full error details:', JSON.stringify(errorData, null, 2))
         throw new Error('Unauthorized')
       }
       const data = await res.json()
       setUsers(data.users)
     } catch (error) {
-      console.log('Fetch error:', error)
       toast.error('Access denied')
       router.push('/admin')
     } finally {
       setLoading(false)
+      loadingRef.current = false
     }
-  }
+  }, [router])
 
-  async function deleteUser(id: number) {
-    if (!confirm('Are you sure you want to delete this user?')) return
-    const res = await fetch(`http://localhost:4000/api/admin/users/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    })
-    if (res.ok) {
-      toast.success('User deleted')
-      fetchUsers()
-    } else {
-      toast.error('Failed to delete user')
+  const fetchCurrentUserId = useCallback(async () => {
+    try {
+      const res = await fetch('http://localhost:4000/api/me', {
+        credentials: 'include',
+      })
+      const data = await res.json()
+      setCurrentUserId(data.user?.userId || null)
+    } catch (error) {
     }
-  }
+  }, [])
 
-  async function resetPassword() {
+  useEffect(() => {
+    fetchUsers()
+    fetchCurrentUserId()
+  }, [fetchUsers, fetchCurrentUserId])
+
+  const resetPassword = useCallback(async () => {
     const res = await fetch(`http://localhost:4000/api/admin/users/${selectedUser?.id}/password`, {
       method: 'PATCH',
       credentials: 'include',
@@ -118,9 +107,9 @@ export default function ManageUsersPage() {
     } else {
       toast.error('Failed to reset password')
     }
-  }
+  }, [selectedUser?.id, newPassword])
 
-  async function createUser(e: React.FormEvent) {
+  const createUser = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     const res = await fetch('http://localhost:4000/api/admin/users', {
       method: 'POST',
@@ -133,15 +122,15 @@ export default function ManageUsersPage() {
       setName('')
       setEmail('')
       setPassword('')
-      setRole('')
+      setRole('sales_rep')
       setCreateModalOpen(false)
       fetchUsers()
     } else {
       toast.error('Failed to create user')
     }
-  }
+  }, [name, email, password, role, fetchUsers])
 
-  async function updateUser() {
+  const updateUser = useCallback(async () => {
     const res = await fetch(`http://localhost:4000/api/admin/users/${selectedUser?.id}`, {
       method: 'PATCH',
       credentials: 'include',
@@ -159,21 +148,92 @@ export default function ManageUsersPage() {
     } else {
       toast.error('Failed to update user')
     }
-  }
+  }, [selectedUser, fetchUsers])
 
-  async function toggleActive(user: User) {
-    const endpoint = user.active ? 'deactivate' : 'activate'
-    const res = await fetch(`http://localhost:4000/api/admin/users/${user.id}/${endpoint}`, {
-      method: 'PATCH',
+  const toggleActive = useCallback(async (user: User) => {
+    // Confirmation for deactivation
+    if (user.active) {
+      const confirmed = confirm(
+        `Are you sure you want to deactivate ${user.name}?\n\nThis will prevent them from logging in and accessing the system.`
+      )
+      if (!confirmed) return
+    }
+    
+    try {
+      const endpoint = user.active ? 'deactivate' : 'activate'
+      const action = user.active ? 'deactivating' : 'activating'
+      
+      
+      const res = await fetch(`http://localhost:4000/api/admin/users/${user.id}/${endpoint}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      if (res.ok) {
+        const responseData = await res.json()
+        toast.success(`User ${user.active ? 'deactivated' : 'activated'}`)
+        fetchUsers()
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Toggle active failed:', res.status, errorData)
+        
+        if (res.status === 403) {
+          toast.error('Access denied: Only super admins can activate/deactivate users')
+        } else if (res.status === 401) {
+          toast.error('Authentication required')
+        } else if (res.status === 400) {
+          toast.error(errorData.error || 'Invalid request')
+        } else if (res.status === 404) {
+          toast.error('User not found')
+        } else {
+          toast.error(`Failed to ${user.active ? 'deactivate' : 'activate'} user: ${errorData.error || 'Unknown error'}`)
+        }
+      }
+    } catch (error) {
+      console.error('Toggle active error:', error)
+      toast.error(`Network error while ${user.active ? 'deactivating' : 'activating'} user`)
+    }
+  }, [fetchUsers])
+
+  // Optimized modal handlers to prevent recreating callbacks on every render
+  const handleEditUser = useCallback((user: User) => {
+    setSelectedUser(user)
+    setEditModalOpen(true)
+  }, [])
+
+  const handleResetPassword = useCallback((user: User) => {
+    setSelectedUser(user)
+    setResetModalOpen(true)
+  }, [])
+
+  const handleDeleteUser = useCallback((user: User) => {
+    setSelectedUser(user)
+    setDeleteModalOpen(true)
+  }, [])
+
+  const handleCreateUser = useCallback(() => {
+    setCreateModalOpen(true)
+  }, [])
+
+  // Optimized delete handler for delete modal
+  const handleConfirmDelete = useCallback(async () => {
+    if (!selectedUser) return
+    
+    const res = await fetch(`http://localhost:4000/api/admin/users/${selectedUser.id}`, {
+      method: 'DELETE',
       credentials: 'include',
     })
     if (res.ok) {
-      toast.success(`User ${user.active ? 'deactivated' : 'activated'}`)
+      toast.success('User deleted')
+      setDeleteModalOpen(false)
       fetchUsers()
     } else {
-      toast.error('Failed to update status')
+      toast.error('Failed to delete user')
     }
-  }
+  }, [selectedUser, fetchUsers])
 
   if (loading) {
     return (
@@ -200,7 +260,7 @@ export default function ManageUsersPage() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <div className="bg-gradient-to-b from-gray-50 to-white">
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 py-6 shadow-lg md:px-6 md:py-8">
         <div className="w-full mx-auto">
@@ -215,7 +275,7 @@ export default function ManageUsersPage() {
               </div>
             </div>
             <Button 
-              onClick={() => setCreateModalOpen(true)}
+              onClick={handleCreateUser}
               className="bg-white text-indigo-700 hover:bg-gray-100 shadow-lg"
             >
               <UserPlus className="h-4 w-4 mr-2" />
@@ -260,7 +320,7 @@ export default function ManageUsersPage() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => { setSelectedUser(user); setEditModalOpen(true) }}
+                  onClick={() => handleEditUser(user)}
                   className="h-9"
                 >
                   <Edit className="h-3 w-3 mr-1" />
@@ -269,7 +329,7 @@ export default function ManageUsersPage() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => { setSelectedUser(user); setResetModalOpen(true) }}
+                  onClick={() => handleResetPassword(user)}
                   className="h-9"
                 >
                   <RotateCcw className="h-3 w-3 mr-1" />
@@ -288,7 +348,7 @@ export default function ManageUsersPage() {
                   variant="outline" 
                   size="sm" 
                   disabled={user.id === currentUserId}
-                  onClick={() => { setSelectedUser(user); setDeleteModalOpen(true) }}
+                  onClick={() => handleDeleteUser(user)}
                   className="h-9 disabled:opacity-50"
                 >
                   <UserX className="h-3 w-3 mr-1" />
@@ -348,7 +408,7 @@ export default function ManageUsersPage() {
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              onClick={() => { setSelectedUser(user); setEditModalOpen(true) }}
+                              onClick={() => handleEditUser(user)}
                               className="h-8 w-8 p-0"
                             >
                               <Edit className="h-3 w-3" />
@@ -364,7 +424,7 @@ export default function ManageUsersPage() {
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              onClick={() => { setSelectedUser(user); setResetModalOpen(true) }}
+                              onClick={() => handleResetPassword(user)}
                               className="h-8 w-8 p-0"
                             >
                               <RotateCcw className="h-3 w-3" />
@@ -397,7 +457,7 @@ export default function ManageUsersPage() {
                               variant="outline" 
                               size="sm" 
                               disabled={user.id === currentUserId}
-                              onClick={() => { setSelectedUser(user); setDeleteModalOpen(true) }}
+                              onClick={() => handleDeleteUser(user)}
                               className="h-8 w-8 p-0 disabled:opacity-50"
                             >
                               <UserX className="h-3 w-3" />
@@ -422,7 +482,7 @@ export default function ManageUsersPage() {
             <h3 className="mt-2 text-sm font-semibold text-gray-900">No users found</h3>
             <p className="mt-1 text-sm text-gray-500">Get started by creating a new user.</p>
             <div className="mt-6">
-              <Button onClick={() => setCreateModalOpen(true)}>
+              <Button onClick={handleCreateUser}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add User
               </Button>
@@ -430,10 +490,12 @@ export default function ManageUsersPage() {
           </div>
         )}
       </div>
+      </div>
 
+      {/* Modals moved outside TooltipProvider */}
       {/* Create Modal */}
       <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-lg mx-auto m-4 rounded-2xl overflow-hidden p-0">
+        <DialogContent className="w-[90vw] max-w-lg mx-auto rounded-2xl overflow-hidden p-0 md:w-[500px] md:max-w-none [&>button]:hidden">
           {/* Header with gradient */}
           <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white p-6">
             <div className="flex items-center justify-between">
@@ -548,7 +610,7 @@ export default function ManageUsersPage() {
 
       {/* Reset Password Modal */}
       <Dialog open={resetModalOpen} onOpenChange={setResetModalOpen}>
-        <DialogContent className="max-w-lg mx-auto m-4 rounded-2xl overflow-hidden p-0">
+        <DialogContent className="w-[90vw] max-w-lg mx-auto rounded-2xl overflow-hidden p-0 md:w-[500px] md:max-w-none [&>button]:hidden">
           {/* Header with gradient */}
           <div className="bg-gradient-to-r from-amber-600 to-amber-700 text-white p-6">
             <div className="flex items-center justify-between">
@@ -630,7 +692,7 @@ export default function ManageUsersPage() {
 
       {/* Edit Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="max-w-lg mx-auto m-4 rounded-2xl overflow-hidden p-0">
+        <DialogContent className="w-[90vw] max-w-lg mx-auto rounded-2xl overflow-hidden p-0 md:w-[500px] md:max-w-none [&>button]:hidden">
           {/* Header with gradient */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
             <div className="flex items-center justify-between">
@@ -729,7 +791,7 @@ export default function ManageUsersPage() {
 
       {/* Delete Modal */}
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent className="max-w-lg mx-auto m-4 rounded-2xl overflow-hidden p-0">
+        <DialogContent className="w-[90vw] max-w-lg mx-auto rounded-2xl overflow-hidden p-0 md:w-[500px] md:max-w-none [&>button]:hidden">
           {/* Header with gradient */}
           <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6">
             <div className="flex items-center justify-between">
@@ -794,19 +856,7 @@ export default function ManageUsersPage() {
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={async () => {
-                    const res = await fetch(`http://localhost:4000/api/admin/users/${selectedUser?.id}`, {
-                      method: 'DELETE',
-                      credentials: 'include',
-                    })
-                    if (res.ok) {
-                      toast.success('User deleted')
-                      setDeleteModalOpen(false)
-                      fetchUsers()
-                    } else {
-                      toast.error('Failed to delete user')
-                    }
-                  }}
+                  onClick={handleConfirmDelete}
                   className="flex-1 h-12 rounded-xl"
                 >
                   Delete User
@@ -816,7 +866,6 @@ export default function ManageUsersPage() {
           </div>
         </DialogContent>
       </Dialog>
-      </div>
     </TooltipProvider>
   )
 }

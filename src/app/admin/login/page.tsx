@@ -25,6 +25,11 @@ export default function AdminLoginPage() {
     }
   }, [user, userLoading, router])
 
+  // Force refresh user context on mount to ensure we have fresh data
+  useEffect(() => {
+    refreshUser()
+  }, [])
+
   // Show loading while checking authentication
   if (userLoading) {
     return (
@@ -41,7 +46,17 @@ export default function AdminLoginPage() {
 
   // Don't show login form if user is already logged in
   if (user) {
-    return null
+    // Show a brief loading state while redirecting
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-2xl mb-4 border border-white/10">
+            <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-slate-300 text-lg font-medium">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   async function handleSubmit(e: React.FormEvent) {

@@ -2,15 +2,12 @@
 
 import {
   Dialog,
+  DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
   DialogClose,
-  DialogPortal,
-  DialogOverlay,
 } from '@/components/ui/dialog'
-import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { cn } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +46,7 @@ export default function AdjustInventoryModal({
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>('relative')
   const [confirmOpen, setConfirmOpen] = useState(false)
+
 
   const {
     register,
@@ -120,39 +118,22 @@ export default function AdjustInventoryModal({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogPortal>
-        <DialogOverlay />
-        <DialogPrimitive.Content
-          className={cn(
-            "fixed inset-0 z-50 flex flex-col bg-background sm:inset-auto sm:left-[50%] sm:top-[50%] sm:max-w-md sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:shadow-lg",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%] sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]",
-            "max-h-screen overflow-y-auto sm:max-h-[90vh]"
-          )}
-        >
-        <DialogHeader className="pb-4 sticky top-0 bg-white z-10 p-4 sm:p-6">
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                </svg>
-              </div>
-              <div>
-                <DialogTitle className="text-xl font-bold text-gray-900">Adjust Inventory</DialogTitle>
-                <p className="text-sm text-gray-600">Modify stock levels for this product</p>
-              </div>
-            </div>
-            <DialogClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
               </svg>
-              <span className="sr-only">Close</span>
-            </DialogClose>
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-bold text-gray-900">Adjust Inventory</DialogTitle>
+              <p className="text-sm text-gray-600">Modify stock levels for this product</p>
+            </div>
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 pb-4 px-4 sm:px-6 flex-1">
+        <div className="space-y-6">
           {/* Info Cards */}
           <div className="grid grid-cols-1 gap-3">
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
@@ -318,8 +299,7 @@ export default function AdjustInventoryModal({
             </Button>
           </form>
         </div>
-        </DialogPrimitive.Content>
-      </DialogPortal>
+      </DialogContent>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent className="sm:max-w-md">

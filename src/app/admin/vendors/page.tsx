@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
@@ -29,41 +29,66 @@ interface Vendor {
 }
 
 export default function VendorsPage() {
-  const { user } = useUser()
+  const { user, loading: userLoading } = useUser()
   const router = useRouter()
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [filtered, setFiltered] = useState<Vendor[]>([])
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const loadingRef = useRef(false)
 
-  const fetchVendors = async () => {
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const fetchVendors = useCallback(async () => {
+    if (loadingRef.current || !user) return
+    
+    loadingRef.current = true
+    setLoading(true)
     try {
       const res = await fetch('http://localhost:4000/api/vendors', {
         credentials: 'include'
       })
       const data = await res.json()
-      setVendors(data.vendors)
-      setFiltered(data.vendors)
+      setVendors(data.vendors || [])
+      setFiltered(data.vendors || [])
     } catch (err) {
       console.error('Error loading vendors:', err)
+      setVendors([])
+      setFiltered([])
     } finally {
+      loadingRef.current = false
       setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    if (user) fetchVendors()
   }, [user])
 
+  const handleVendorUpdate = useCallback(() => {
+    if (!loadingRef.current) {
+      fetchVendors()
+    }
+  }, [fetchVendors])
+
   useEffect(() => {
-    const q = search.toLowerCase()
+    if (!userLoading && user) {
+      fetchVendors()
+    }
+  }, [userLoading, user, fetchVendors])
+
+  useEffect(() => {
+    const q = debouncedSearch.toLowerCase()
     const f = vendors.filter(v =>
       v.name.toLowerCase().includes(q) ||
       v.email?.toLowerCase().includes(q) ||
       v.phone?.toLowerCase().includes(q)
     )
     setFiltered(f)
-  }, [search, vendors])
+  }, [debouncedSearch, vendors])
 
   if (!user) return <div className="p-6">Unauthorized</div>
   
@@ -195,7 +220,7 @@ export default function VendorsPage() {
                 />
               </div>
               <VendorCreateModal
-                onSaved={fetchVendors}
+                onSaved={handleVendorUpdate}
                 trigger={
                   <Button className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white shadow-sm">
                     <Plus className="h-4 w-4 mr-2" />

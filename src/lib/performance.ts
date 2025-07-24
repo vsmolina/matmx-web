@@ -37,7 +37,6 @@ class PerformanceMonitor {
     this.metrics.push(metric)
     
     if (process.env.NODE_ENV === 'development') {
-      console.log(`🔍 Performance: ${name} = ${value}${unit}`)
     }
   }
 
@@ -292,7 +291,6 @@ if (typeof window !== 'undefined') {
   // Export metrics to console in development
   if (process.env.NODE_ENV === 'development') {
     (window as any).exportPerformanceMetrics = () => {
-      console.log('Performance Metrics:', performanceMonitor.exportMetrics())
     }
   }
 }

@@ -81,14 +81,37 @@ a {
   box-sizing: border-box;
 }
 
-/* Prevent horizontal overflow globally */
-body {
-  max-width: 100vw;
+/* Simple layout shift prevention - no forced scrollbars */
+body[data-scroll-locked],
+body[style*="padding-right"],
+body[style*="overflow"] {
+  padding-right: 0 !important;
+  overflow: auto !important;
 }
 
-/* Ensure all containers respect viewport width */
-.container, [class*="max-w-"] {
-  max-width: 100vw;
+/* Ensure responsive viewport */
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Target only mobile responsiveness issues */
+@media (max-width: 768px) {
+  #__next,
+  [data-overlay-container],
+  .min-h-screen {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Prevent horizontal overflow on mobile only */
+  body * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
 }
 
 
