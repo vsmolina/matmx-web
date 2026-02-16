@@ -192,7 +192,57 @@ export default function SelectQuoteItemsDialog({
                 <span className="font-medium text-gray-700">Selected Products Summary</span>
                 <span className="text-sm text-gray-600">{selected.length} item(s)</span>
               </div>
-              <div className="text-right">
+              <div className="space-y-2 mb-3">
+                {selected.map((item) => {
+                  const product = products.find(p => p.id === item.product_id)
+                  return (
+                    <div key={item.product_id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-gray-900 truncate block">
+                          {product?.name || `Product #${item.product_id}`}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {formatCurrency(product?.unit_price || 0)} each
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 ml-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (item.quantity > 1) handleQtyChange(item.product_id, item.quantity - 1)
+                          }}
+                          className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                          disabled={item.quantity <= 1}
+                        >
+                          −
+                        </button>
+                        <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleQtyChange(item.product_id, item.quantity + 1)}
+                          className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100"
+                        >
+                          +
+                        </button>
+                        <span className="text-sm font-medium text-gray-900 w-20 text-right">
+                          {formatCurrency((product?.unit_price || 0) * item.quantity)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemove(item.product_id)}
+                          className="ml-1 text-red-400 hover:text-red-600 transition-colors p-1"
+                          title="Remove"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="text-right border-t border-gray-200 pt-2">
                 <span className="text-lg font-bold text-gray-900">
                   Total: {formatCurrency(
                     selected.reduce((sum, item) => {

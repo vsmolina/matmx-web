@@ -16,6 +16,7 @@ import { Product } from '@/types/ProductTypes'
 import SelectQuoteItemsDialog from './SelectQuoteItmesDialog'
 import { toast } from 'react-hot-toast'
 import { Plus } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 interface CreateQuoteDialogProps {
   open: boolean
@@ -45,7 +46,7 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/crm', { credentials: 'include' })
+      const res = await apiCall('/api/crm')
       if (!res.ok) {
         throw new Error(`Failed to fetch customers: ${res.status}`)
       }
@@ -59,7 +60,7 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/inventory', { credentials: 'include' })
+      const res = await apiCall('/api/inventory')
       if (!res.ok) {
         throw new Error(`Failed to fetch products: ${res.status}`)
       }
@@ -106,9 +107,8 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
 
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:4000/api/sales/quotes', {
+      const res = await apiCall('/api/sales/quotes', { 
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
@@ -216,16 +216,38 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
                     onClick={() => setShowItemDialog(true)}
                     className="border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300"
                   >
-                    {items.length === 0 ? 'Add Products' : `Edit ${items.length} Item(s)`}
+                    {items.length === 0 ? 'Add Products' : 'Add More Products'}
                   </Button>
                 </div>
                 
                 {items.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium">{items.length}</span> product(s) selected
-                    </div>
-                    <div className="text-sm font-medium text-gray-900 mt-1">
+                  <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                    {items.map((item) => {
+                      const product = products.find(p => p.id === item.product_id)
+                      return (
+                        <div key={item.product_id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2">
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-gray-900 truncate block">
+                              {product?.name || `Product #${item.product_id}`}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {item.quantity} × ${item.unit_price.toFixed(2)} = ${item.total_price.toFixed(2)}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setItems(prev => prev.filter(i => i.product_id !== item.product_id))}
+                            className="ml-2 text-red-400 hover:text-red-600 transition-colors p-1"
+                            title="Remove product"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      )
+                    })}
+                    <div className="text-sm font-medium text-gray-900 text-right pt-1">
                       Total: ${items.reduce((sum, item) => sum + item.total_price, 0).toFixed(2)}
                     </div>
                   </div>
