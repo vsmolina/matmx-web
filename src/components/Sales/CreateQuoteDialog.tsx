@@ -231,7 +231,7 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
                               {product?.name || `Product #${item.product_id}`}
                             </span>
                             <span className="text-xs text-gray-500">
-                              {item.quantity} × ${item.unit_price.toFixed(2)} = ${item.total_price.toFixed(2)}
+                              {item.quantity} × ${Number(item.unit_price).toFixed(2)} = ${Number(item.total_price).toFixed(2)}
                             </span>
                           </div>
                           <button
@@ -248,7 +248,7 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
                       )
                     })}
                     <div className="text-sm font-medium text-gray-900 text-right pt-1">
-                      Total: ${items.reduce((sum, item) => sum + item.total_price, 0).toFixed(2)}
+                      Total: ${items.reduce((sum, item) => sum + Number(item.total_price), 0).toFixed(2)}
                     </div>
                   </div>
                 )}
@@ -284,7 +284,8 @@ export default function CreateQuoteDialog({ open, onClose, onCreated }: CreateQu
         onSelect={(selected) => {
           const computed = selected.map(i => ({
             ...i,
-            total_price: i.unit_price * i.quantity,
+            unit_price: Number(i.unit_price),
+            total_price: Number(i.unit_price) * i.quantity,
           }))
           setItems(computed)
           setShowItemDialog(false)
