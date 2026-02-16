@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import KPIChart from '../KPIChart'
+import { apiCall } from '@/lib/api'
 
 export default function OrdersByStatusChart() {
   const [data, setData] = useState<{ name: string, value: number }[]>([])
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/dashboard/orders-by-status', {
-      credentials: 'include'
-    })
+    apiCall('/api/dashboard/orders-by-status')
       .then(res => res.json())
       .then(json => setData(json.data || []))
       .catch(err => {

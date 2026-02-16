@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
+import { apiCall } from '@/lib/api'
 
 interface OrderRow {
   id: number
@@ -18,9 +19,7 @@ export default function RecentOrdersTable() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/dashboard/recent-orders?limit=10', {
-      credentials: 'include'
-    })
+    apiCall('/api/dashboard/recent-orders?limit=10')
       .then(res => res.json())
       .then(json => {
         setOrders(json.data || [])

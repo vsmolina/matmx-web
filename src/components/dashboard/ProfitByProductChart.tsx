@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiCall } from '@/lib/api'
 import KPIChart from '../KPIChart'
 
 export default function ProfitByProductChart() {
@@ -8,7 +9,7 @@ export default function ProfitByProductChart() {
   const [topN, setTopN] = useState(5)
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/analytics/profit-by-product?limit=${topN}`)
+    apiCall(`/api/analytics/profit-by-product?limit=${topN}`)
       .then(res => res.json())
       .then(json => setData(json.data || []))
       .catch(err => {

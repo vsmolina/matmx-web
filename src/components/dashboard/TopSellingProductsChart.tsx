@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import KPIChart from '../KPIChart'
+import { apiCall } from '@/lib/api'
 
 export default function TopSellingProductsChart() {
   const [data, setData] = useState<{ name: string, value: number }[]>([])
   const [topN, setTopN] = useState(5)
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/dashboard/top-selling-products?limit=${topN}`, {
-      credentials: 'include'
-    })
+    apiCall(`/api/dashboard/top-selling-products?limit=${topN}`)
       .then(res => res.json())
       .then(json => setData(json.data || []))
       .catch(err => {

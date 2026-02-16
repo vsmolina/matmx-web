@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiCall, getApiBaseUrl } from '@/lib/api'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
@@ -9,7 +10,7 @@ export default function StockOverTimeChart() {
   const [data, setData] = useState<{ date: string, stock: number }[]>([])
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/analytics/stock-over-time')
+    fetch(`${getApiBaseUrl()}/api/analytics/stock-over-time`)
       .then(res => res.json())
       .then(json => setData(json.data || []))
       .catch(err => {

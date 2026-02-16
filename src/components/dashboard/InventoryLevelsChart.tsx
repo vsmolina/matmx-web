@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import KPIChart from '../KPIChart'
+import { apiCall } from '@/lib/api'
 
 export default function InventoryLevelsChart() {
   const [data, setData] = useState<{ name: string, value: number }[]>([])
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/dashboard/inventory-levels', {
-      credentials: 'include'
-    })
+    apiCall('/api/dashboard/inventory-levels')
       .then(res => res.json())
       .then(json => setData(json.data || []))
       .catch(err => {

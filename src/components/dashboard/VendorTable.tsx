@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiCall } from '@/lib/api'
 
 interface VendorRow {
   name: string
@@ -19,7 +20,7 @@ export default function VendorTable() {
       minProducts: minProducts.toString(),
     })
 
-    fetch(`http://localhost:4000/api/vendors/summary?${params}`)
+    apiCall(`/api/vendors/summary?${params}`)
       .then(res => res.json())
       .then(json => setVendors(json.data || []))
       .catch(err => {

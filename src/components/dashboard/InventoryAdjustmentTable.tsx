@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiCall } from '@/lib/api'
 
 interface Adjustment {
   product_name: string
@@ -22,7 +23,7 @@ export default function InventoryAdjustmentTable() {
     if (fromDate) params.append('from', fromDate)
     if (toDate) params.append('to', toDate)
 
-    fetch(`http://localhost:4000/api/analytics/recent-adjustments?${params}`)
+    apiCall(`/api/analytics/recent-adjustments?${params}`)
       .then(res => res.json())
       .then(json => setAdjustments(json.data || []))
       .catch(err => {

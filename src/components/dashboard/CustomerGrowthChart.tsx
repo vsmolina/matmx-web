@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiCall } from '@/lib/api'
 import {
   LineChart,
   Line,
@@ -16,9 +17,7 @@ export default function CustomerGrowthChart() {
   const [months, setMonths] = useState(6)
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/dashboard/customer-growth?months=${months}`, {
-      credentials: 'include'
-    })
+    apiCall(`/api/dashboard/customer-growth?months=${months}`)
       .then(res => res.json())
       .then(json => setData(json.data || []))
       .catch(err => {

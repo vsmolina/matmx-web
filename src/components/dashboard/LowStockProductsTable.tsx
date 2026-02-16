@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiCall } from '@/lib/api'
 
 interface LowStockProduct {
   id: number
@@ -16,9 +17,7 @@ export default function LowStockProductsTable() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/dashboard/low-stock-products?threshold=10&limit=10', {
-      credentials: 'include'
-    })
+    apiCall('/api/dashboard/low-stock-products?threshold=10&limit=10')
       .then(res => res.json())
       .then(json => {
         setProducts(json.data || [])

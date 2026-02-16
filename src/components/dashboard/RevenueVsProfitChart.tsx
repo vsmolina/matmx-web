@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiCall } from '@/lib/api'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
@@ -10,7 +11,7 @@ export default function RevenueVsProfitChart() {
   const [months, setMonths] = useState(6)
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/analytics/revenue-vs-profit?months=${months}`)
+    apiCall(`/api/analytics/revenue-vs-profit?months=${months}`)
       .then(res => res.json())
       .then(json => setData(json.data || []))
       .catch(err => {
