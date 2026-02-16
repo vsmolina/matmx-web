@@ -73,9 +73,9 @@ export default function SelectQuoteItemsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="w-[90vw] max-w-3xl mx-auto rounded-2xl overflow-hidden p-0 md:w-[800px] md:max-w-none [&>button]:hidden">
+      <DialogContent className="w-[90vw] max-w-3xl mx-auto rounded-2xl overflow-hidden p-0 md:w-[800px] md:max-w-none [&>button]:hidden max-h-[90vh] flex flex-col">
         {/* Header with neutral gradient */}
-        <div className="bg-gradient-to-r from-gray-600 to-gray-700 text-white p-6">
+        <div className="bg-gradient-to-r from-gray-600 to-gray-700 text-white p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
@@ -101,8 +101,8 @@ export default function SelectQuoteItemsDialog({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Content - outer scroll for everything */}
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
           <ScrollArea className="h-[400px] pr-2">
             <div className="space-y-3">
               {products.map((product, index) => {
