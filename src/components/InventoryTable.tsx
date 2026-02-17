@@ -121,7 +121,7 @@ export default function InventoryTable() {
     [key: string]: 'vendors' | 'prices' | null
   }>({})
   
-  const loadingRef = useRef(false)
+  // loadingRef removed - using AbortController for request dedup instead
 
   // Debounce search to prevent excessive filtering
   const [debouncedSearch, setDebouncedSearch] = useState(search)
@@ -144,19 +144,13 @@ export default function InventoryTable() {
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchProducts = useCallback(async () => {
-    // Prevent multiple simultaneous requests
-    if (loadingRef.current) {
-      return
-    }
-    
-    // Cancel any in-flight requests
+    // Cancel any in-flight requests (this is our dedup mechanism)
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
     const controller = new AbortController()
     abortControllerRef.current = controller
     
-    loadingRef.current = true
     setLoadingData(true)
     try {
       let url = '/api/inventory'
@@ -177,12 +171,14 @@ export default function InventoryTable() {
         console.error('Unexpected API response structure:', data)
       }
       
-      setRows(products)
-      setFiltered(products)
-      
-      // Create merged products
-      const merged = createMergedProducts(products)
-      setMergedProducts(merged)
+      if (!controller.signal.aborted) {
+        setRows(products)
+        setFiltered(products)
+        
+        // Create merged products
+        const merged = createMergedProducts(products)
+        setMergedProducts(merged)
+      }
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
         console.error('Error fetching inventory:', err)
@@ -191,7 +187,6 @@ export default function InventoryTable() {
         setMergedProducts([])
       }
     } finally {
-      loadingRef.current = false
       if (!controller.signal.aborted) {
         setLoadingData(false)
       }
@@ -200,16 +195,12 @@ export default function InventoryTable() {
 
   // Optimized handlers to prevent excessive API calls
   const handleInventoryUpdate = useCallback(() => {
-    if (!loadingRef.current) {
-      fetchProducts()
-      setHistoryRefreshKey(prev => prev + 1)
-    }
+    fetchProducts()
+    setHistoryRefreshKey(prev => prev + 1)
   }, [fetchProducts])
 
   const handleProductUpdate = useCallback(() => {
-    if (!loadingRef.current) {
-      fetchProducts()
-    }
+    fetchProducts()
   }, [fetchProducts])
 
   const createMergedProducts = (products: ProductVendorStock[]): MergedProduct[] => {

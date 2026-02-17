@@ -248,11 +248,10 @@ export default function ProductProfilePage() {
     sku: string
   } | null>(null)
   
-  const loadingRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchProductProfile = useCallback(async () => {
-    if (loadingRef.current || !productId) return
+    if (!productId) return
     
     // Cancel any in-flight requests
     if (abortControllerRef.current) {
@@ -261,7 +260,6 @@ export default function ProductProfilePage() {
     const controller = new AbortController()
     abortControllerRef.current = controller
     
-    loadingRef.current = true
     setLoading(true)
     try {
       const productRes = await apiCall(`/api/inventory/${productId}`, { signal: controller.signal })
@@ -291,7 +289,6 @@ export default function ProductProfilePage() {
         console.error('Error fetching product profile:', err)
       }
     } finally {
-      loadingRef.current = false
       if (!controller.signal.aborted) {
         setLoading(false)
       }
@@ -369,7 +366,7 @@ export default function ProductProfilePage() {
   }
 
   const handleImageUpload = useCallback(async (file: File) => {
-    if (!product || loadingRef.current) return
+    if (!product) return
     
     try {
       const formData = new FormData()
@@ -391,13 +388,11 @@ export default function ProductProfilePage() {
   }, [product, fetchProductProfile])
 
   const handleVendorTermsUpdate = useCallback(() => {
-    if (!loadingRef.current) {
-      fetchProductProfile()
-    }
+    fetchProductProfile()
   }, [fetchProductProfile])
 
   useEffect(() => {
-    if (user && productId && !loadingRef.current) {
+    if (user && productId) {
       fetchProductProfile()
     }
     return () => {
