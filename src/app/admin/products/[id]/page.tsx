@@ -216,6 +216,20 @@ interface VendorInfo {
   stock_quantity: number
 }
 
+interface Warehouse {
+  id: number
+  name: string
+  code: string
+}
+
+interface WarehouseStock {
+  vendor_id: number
+  warehouse_id: number
+  warehouse_name: string
+  warehouse_code: string
+  quantity: number
+}
+
 export default function ProductProfilePage() {
   const { user } = useUser()
   const router = useRouter()
@@ -224,6 +238,8 @@ export default function ProductProfilePage() {
 
   const [product, setProduct] = useState<Product | null>(null)
   const [vendorInfos, setVendorInfos] = useState<VendorInfo[]>([])
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([])
+  const [warehouseStock, setWarehouseStock] = useState<WarehouseStock[]>([])
   const [loading, setLoading] = useState(true)
   const [priceUpdateConfirm, setPriceUpdateConfirm] = useState<{
     show: boolean
@@ -260,6 +276,8 @@ export default function ProductProfilePage() {
       const data = await profileRes.json()
       setProduct(data.product)
       setVendorInfos(data.vendors)
+      setWarehouses(data.warehouses || [])
+      setWarehouseStock(data.warehouse_stock || [])
     } catch (err) {
       console.error('Error fetching product profile:', err)
     } finally {
@@ -528,10 +546,156 @@ export default function ProductProfilePage() {
         </div>
       </div>
 
+      {/* Warehouse Stock Section */}
+      {warehouseStock.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <svg className="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            Warehouse Stock
+          </h2>
+          
+          {(() => {
+            // Deduplicate vendors by vendor_id
+            const uniqueVendors = vendorInfos.reduce((acc, v) => {
+              if (!acc.find(existing => existing.vendor_id === v.vendor_id)) {
+                acc.push(v)
+              }
+              return acc
+            }, [] as VendorInfo[])
+            
+            // Build lookup: vendor_id -> warehouse_id -> quantity
+            const stockLookup: Record<number, Record<number, number>> = {}
+            warehouseStock.forEach(ws => {
+              if (!stockLookup[ws.vendor_id]) stockLookup[ws.vendor_id] = {}
+              stockLookup[ws.vendor_id][ws.warehouse_id] = (stockLookup[ws.vendor_id][ws.warehouse_id] || 0) + ws.quantity
+            })
+            
+            // Calculate totals per warehouse
+            const warehouseTotals: Record<number, number> = {}
+            warehouses.forEach(wh => {
+              warehouseTotals[wh.id] = uniqueVendors.reduce((sum, v) => sum + (stockLookup[v.vendor_id]?.[wh.id] || 0), 0)
+            })
+            const grandTotal = Object.values(warehouseTotals).reduce((a, b) => a + b, 0)
+            
+            return (
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto border rounded-xl">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-gradient-to-r from-indigo-50 to-blue-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700">Vendor</th>
+                        {warehouses.map(wh => (
+                          <th key={wh.id} className="px-4 py-3 text-center font-semibold text-gray-700">
+                            <div>{wh.name}</div>
+                            <div className="text-xs font-normal text-gray-500">{wh.code}</div>
+                          </th>
+                        ))}
+                        <th className="px-4 py-3 text-center font-semibold text-gray-700">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {uniqueVendors.map(vendor => {
+                        const vendorTotal = warehouses.reduce((sum, wh) => sum + (stockLookup[vendor.vendor_id]?.[wh.id] || 0), 0)
+                        return (
+                          <tr key={vendor.vendor_id} className="border-t hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-gray-900">{vendor.vendor_name}</div>
+                              <div className="text-gray-500 text-xs">{vendor.vendor_email}</div>
+                            </td>
+                            {warehouses.map(wh => {
+                              const qty = stockLookup[vendor.vendor_id]?.[wh.id] ?? 0
+                              return (
+                                <td key={wh.id} className="px-4 py-3 text-center">
+                                  <span className={`inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-semibold ${
+                                    qty > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'
+                                  }`}>
+                                    {qty}
+                                  </span>
+                                </td>
+                              )
+                            })}
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-800">
+                                {vendorTotal}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                      {/* Totals row */}
+                      <tr className="border-t-2 border-gray-300 bg-gray-50 font-bold">
+                        <td className="px-4 py-3 text-gray-700">Total</td>
+                        {warehouses.map(wh => (
+                          <td key={wh.id} className="px-4 py-3 text-center">
+                            <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-bold bg-indigo-100 text-indigo-800">
+                              {warehouseTotals[wh.id] || 0}
+                            </span>
+                          </td>
+                        ))}
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-full text-sm font-bold bg-indigo-200 text-indigo-900">
+                            {grandTotal}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Mobile Cards */}
+                <div className="md:hidden space-y-4">
+                  {uniqueVendors.map(vendor => {
+                    const vendorTotal = warehouses.reduce((sum, wh) => sum + (stockLookup[vendor.vendor_id]?.[wh.id] || 0), 0)
+                    return (
+                      <div key={vendor.vendor_id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                        <div className="font-semibold text-gray-900 mb-3">{vendor.vendor_name}</div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {warehouses.map(wh => {
+                            const qty = stockLookup[vendor.vendor_id]?.[wh.id] ?? 0
+                            return (
+                              <div key={wh.id} className={`rounded-lg p-3 border ${qty > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                                <div className="text-xs text-gray-500 mb-1">{wh.name}</div>
+                                <div className="text-xs text-gray-400">{wh.code}</div>
+                                <div className={`text-xl font-bold mt-1 ${qty > 0 ? 'text-green-700' : 'text-gray-400'}`}>{qty}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+                          <span className="text-sm text-gray-600 font-medium">Total Stock</span>
+                          <span className="text-lg font-bold text-blue-700">{vendorTotal}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )
+          })()}
+        </div>
+      )}
+
       {/* Vendor Information Section */}
       <div className="mb-8">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Vendor Information</h2>
         
+        {(() => {
+          // Deduplicate vendors by vendor_id for the vendor info table
+          const uniqueVendorInfos = vendorInfos.reduce((acc, v) => {
+            if (!acc.find(existing => existing.vendor_id === v.vendor_id)) {
+              // Sum stock across all entries for this vendor
+              const totalStock = vendorInfos
+                .filter(vi => vi.vendor_id === v.vendor_id)
+                .reduce((sum, vi) => sum + (vi.stock_quantity || 0), 0)
+              acc.push({ ...v, stock_quantity: totalStock })
+            }
+            return acc
+          }, [] as VendorInfo[])
+          
+          return (<>
         {/* Desktop Table */}
         <div className="hidden lg:block overflow-x-auto border rounded-xl">
           <table className="min-w-full text-sm">
@@ -547,7 +711,7 @@ export default function ProductProfilePage() {
               </tr>
             </thead>
             <tbody>
-              {vendorInfos.map((info) => (
+              {uniqueVendorInfos.map((info) => (
                 <tr key={info.vendor_id} className="border-t hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <div>
@@ -600,7 +764,7 @@ export default function ProductProfilePage() {
 
         {/* Mobile Cards */}
         <div className="lg:hidden space-y-4">
-          {vendorInfos.map((info) => (
+          {uniqueVendorInfos.map((info) => (
             <div key={info.vendor_id} className="bg-gradient-to-br from-white to-gray-50/30 border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
@@ -699,6 +863,8 @@ export default function ProductProfilePage() {
             </div>
           ))}
         </div>
+          </>)
+        })()}
       </div>
 
       {/* Barcode Section */}
