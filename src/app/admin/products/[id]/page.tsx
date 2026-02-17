@@ -84,9 +84,10 @@ interface InlineEditProps {
   onSave: (value: string | number) => Promise<void>
   type?: 'text' | 'number'
   field: string
+  readOnly?: boolean
 }
 
-function InlineEdit({ value, onSave, type = 'text', field }: InlineEditProps) {
+function InlineEdit({ value, onSave, type = 'text', field, readOnly }: InlineEditProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(value ?? (type === 'number' ? 0 : ''))
   const [isHovered, setIsHovered] = useState(false)
@@ -127,6 +128,16 @@ function InlineEdit({ value, onSave, type = 'text', field }: InlineEditProps) {
     } else if (e.key === 'Escape') {
       handleCancel()
     }
+  }
+
+  if (readOnly) {
+    return (
+      <div className="py-2 px-3 min-h-[44px] md:min-h-0 md:py-1 md:px-1">
+        <span className="font-medium text-gray-900">
+          {type === 'number' && field.toLowerCase().includes('price') ? `$${Number(value).toFixed(2)}` : value}
+        </span>
+      </div>
+    )
   }
 
   if (isEditing) {
@@ -220,6 +231,7 @@ interface WarehouseStock {
 function ProductProfileContent({ productId }: { productId: string }) {
   const { user } = useUser()
   const router = useRouter()
+  const canEdit = user?.role !== 'sales_rep'
 
   const [product, setProduct] = useState<Product | null>(null)
   const [vendorInfos, setVendorInfos] = useState<VendorInfo[]>([])
@@ -429,7 +441,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
             <h1 className="text-2xl font-bold text-gray-900 mb-1">
               <InlineEdit
                 value={product.name}
-                onSave={(value) => updateProductField('name', value)}
+                readOnly={!canEdit} onSave={(value) => updateProductField('name', value)}
                 field="Name"
               />
             </h1>
@@ -437,7 +449,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
               <span className="text-sm text-blue-600 font-medium">SKU:</span>
               <InlineEdit
                 value={product.sku}
-                onSave={(value) => updateProductField('sku', value)}
+                readOnly={!canEdit} onSave={(value) => updateProductField('sku', value)}
                 field="SKU"
               />
             </div>
@@ -469,7 +481,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
                 </div>
               </div>
             )}
-            <form
+            {canEdit && <form
               onChange={(e) => {
                 const file = (e.target as HTMLInputElement).files?.[0]
                 if (file) {
@@ -484,7 +496,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
                 accept="image/*" 
                 className="text-sm w-full border border-gray-300 rounded-lg p-2 bg-white hover:border-blue-400 transition-colors file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 file:font-medium hover:file:bg-blue-100"
               />
-            </form>
+            </form>}
           </div>
         </div>
 
@@ -502,7 +514,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
               </div>
               <InlineEdit
                 value={product.category}
-                onSave={(value) => updateProductField('category', value)}
+                readOnly={!canEdit} onSave={(value) => updateProductField('category', value)}
                 field="Category"
               />
             </div>
@@ -518,7 +530,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
               </div>
               <InlineEdit
                 value={product.reorder_threshold}
-                onSave={(value) => updateProductField('reorder_threshold', value)}
+                readOnly={!canEdit} onSave={(value) => updateProductField('reorder_threshold', value)}
                 type="number"
                 field="Reorder Threshold"
               />
@@ -535,7 +547,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
               </div>
               <InlineEdit
                 value={product.unit_price}
-                onSave={(value) => updateProductField('unit_price', value)}
+                readOnly={!canEdit} onSave={(value) => updateProductField('unit_price', value)}
                 type="number"
                 field="Selling Price"
               />
@@ -552,7 +564,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
               </div>
               <InlineEdit
                 value={product.notes || 'No notes added'}
-                onSave={(value) => updateProductField('notes', value)}
+                readOnly={!canEdit} onSave={(value) => updateProductField('notes', value)}
                 field="Notes"
               />
             </div>
@@ -748,7 +760,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
                       >
                         View
                       </Button>
-                      <VendorTermsModal
+                      {canEdit && <VendorTermsModal
                         productId={info.product_id}
                         vendorId={info.vendor_id}
                         defaultValues={{
@@ -767,7 +779,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
                             Edit
                           </Button>
                         }
-                      />
+                      />}
                     </div>
                   </td>
                 </tr>
@@ -853,7 +865,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
                 >
                   View Vendor
                 </Button>
-                <VendorTermsModal
+                {canEdit && <VendorTermsModal
                   productId={info.product_id}
                   vendorId={info.vendor_id}
                   defaultValues={{
@@ -872,7 +884,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
                       Edit Terms
                     </Button>
                   }
-                />
+                />}
               </div>
             </div>
           ))}
