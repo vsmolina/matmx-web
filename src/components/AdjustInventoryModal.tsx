@@ -21,9 +21,16 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useForm } from 'react-hook-form'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { apiCall } from '@/lib/api'
+
+interface WarehouseOption {
+  warehouse_id: number
+  warehouse_name: string
+  warehouse_code: string
+  quantity: number
+}
 
 interface Props {
   productId: number
@@ -31,6 +38,8 @@ interface Props {
   vendorName: string
   currentStock: number
   warehouseId?: number
+  /** For merged view: pass all warehouse options so user can pick */
+  warehouses?: WarehouseOption[]
   onSave: () => void
   trigger: React.ReactNode
 }
@@ -43,6 +52,7 @@ export default function AdjustInventoryModal({
   vendorName,
   currentStock,
   warehouseId,
+  warehouses,
   onSave,
   trigger,
 }: Props) {
@@ -50,6 +60,23 @@ export default function AdjustInventoryModal({
   const [mode, setMode] = useState<Mode>('relative')
   const [confirmOpen, setConfirmOpen] = useState(false)
 
+  // If warehouses are provided, let user select; otherwise use the single warehouseId
+  const hasMultipleWarehouses = warehouses && warehouses.length > 1
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number>(
+    warehouseId || warehouses?.[0]?.warehouse_id || 1
+  )
+
+  // Derive currentStock from selected warehouse when in multi-warehouse mode
+  const activeStock = warehouses
+    ? (warehouses.find(w => w.warehouse_id === selectedWarehouseId)?.quantity ?? currentStock)
+    : currentStock
+
+  // Reset selected warehouse when dialog opens
+  useEffect(() => {
+    if (open) {
+      setSelectedWarehouseId(warehouseId || warehouses?.[0]?.warehouse_id || 1)
+    }
+  }, [open, warehouseId, warehouses])
 
   const {
     register,
@@ -69,10 +96,10 @@ export default function AdjustInventoryModal({
 
   const parsedQuantity = Number(quantityInput)
   const finalQty = mode === 'relative'
-    ? currentStock + parsedQuantity
+    ? activeStock + parsedQuantity
     : parsedQuantity
 
-  const changeAmount = finalQty - currentStock
+  const changeAmount = finalQty - activeStock
 
   const submitForm = async () => {
     if (isNaN(parsedQuantity)) {
@@ -83,15 +110,12 @@ export default function AdjustInventoryModal({
     try {
       const requestBody = {
         vendor_id: vendorId,
-        warehouse_id: warehouseId || 1, // Default to warehouse 1 if not provided
-        adjustment_type: mode, // 'relative' or 'absolute'
-        quantity: parsedQuantity, // Use the raw quantity input
+        warehouse_id: selectedWarehouseId,
+        adjustment_type: mode,
+        quantity: parsedQuantity,
         reason: watch('reason'),
         note: watch('note'),
       };
-
-      console.log('🔧 Adjusting inventory:', requestBody);
-      console.log('🔧 Endpoint:', `/api/inventory/${productId}/adjust`);
 
       const res = await apiCall(`/api/inventory/${productId}/adjust`, { 
         method: 'POST', 
@@ -99,15 +123,12 @@ export default function AdjustInventoryModal({
         body: JSON.stringify(requestBody),
       })
 
-      console.log('🔧 Response status:', res.status, res.statusText);
-
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(errorData.error || 'Failed to adjust inventory');
       }
 
       const result = await res.json();
-      console.log('Adjustment result:', result);
 
       toast.success(`Inventory adjusted: ${result.previousStock} → ${result.newStock} units`);
       reset()
@@ -162,33 +183,61 @@ export default function AdjustInventoryModal({
                 </div>
                 <div>
                   <span className="text-sm font-medium text-blue-700">Vendor</span>
-                  <p className="font-semibold text-blue-900">{vendorName}</p>
+                  <p className="font-semibold text-blue-900">{vendorName || '—'}</p>
                 </div>
               </div>
             </div>
+
+            {/* Warehouse Selector */}
+            {warehouses && warehouses.length > 0 && (
+              <div className="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-purple-700">Warehouse</span>
+                    <select
+                      value={selectedWarehouseId}
+                      onChange={(e) => setSelectedWarehouseId(Number(e.target.value))}
+                      className="w-full mt-1 text-sm font-semibold text-purple-900 bg-white border border-purple-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    >
+                      {warehouses.map((wh) => (
+                        <option key={wh.warehouse_id} value={wh.warehouse_id}>
+                          {wh.warehouse_name} ({wh.warehouse_code}) — {wh.quantity} units
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className={`border rounded-xl p-4 ${
-              currentStock > 0 
+              activeStock > 0 
                 ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' 
                 : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-200'
             }`}>
               <div className="flex items-center gap-3">
                 <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                  currentStock > 0 ? 'bg-green-100' : 'bg-red-100'
+                  activeStock > 0 ? 'bg-green-100' : 'bg-red-100'
                 }`}>
                   <svg className={`h-4 w-4 ${
-                    currentStock > 0 ? 'text-green-600' : 'text-red-600'
+                    activeStock > 0 ? 'text-green-600' : 'text-red-600'
                   }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
                 </div>
                 <div>
                   <span className={`text-sm font-medium ${
-                    currentStock > 0 ? 'text-green-700' : 'text-red-700'
-                  }`}>Current Stock</span>
+                    activeStock > 0 ? 'text-green-700' : 'text-red-700'
+                  }`}>Current Stock{warehouses && warehouses.length > 1 ? ' (selected warehouse)' : ''}</span>
                   <p className={`text-lg font-bold ${
-                    currentStock > 0 ? 'text-green-900' : 'text-red-900'
-                  }`}>{currentStock} units</p>
+                    activeStock > 0 ? 'text-green-900' : 'text-red-900'
+                  }`}>{activeStock} units</p>
                 </div>
               </div>
             </div>
@@ -268,7 +317,7 @@ export default function AdjustInventoryModal({
             <div className={`border rounded-xl p-4 ${
               isNaN(finalQty) || finalQty < 0
                 ? 'bg-gradient-to-r from-red-50 to-rose-50 border-red-200'
-                : finalQty === currentStock
+                : finalQty === activeStock
                 ? 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200'
                 : 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200'
             }`}>
@@ -277,12 +326,12 @@ export default function AdjustInventoryModal({
                 <div className="flex items-center gap-2">
                   <span className={`text-lg font-bold ${
                     isNaN(finalQty) || finalQty < 0 ? 'text-red-700' 
-                    : finalQty === currentStock ? 'text-gray-700'
+                    : finalQty === activeStock ? 'text-gray-700'
                     : 'text-green-700'
                   }`}>
                     {isNaN(finalQty) ? '–' : finalQty} units
                   </span>
-                  {!isNaN(finalQty) && finalQty !== currentStock && (
+                  {!isNaN(finalQty) && finalQty !== activeStock && (
                     <span className={`text-sm px-2 py-1 rounded-full font-medium ${
                       changeAmount > 0 
                         ? 'bg-green-100 text-green-700' 

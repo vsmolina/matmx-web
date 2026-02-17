@@ -219,12 +219,19 @@ export default function InventoryTable() {
       }
       
       const mergedProduct = productMap.get(product.sku)!
-      mergedProduct.vendors.push({
-        vendor_id: product.vendor_id,
-        vendor_name: product.vendor || '—',
-        quantity: product.quantity,
-        vendor_price: product.vendor_price
-      })
+      
+      // Deduplicate vendors by vendor_id (aggregate quantity across warehouses)
+      const existingVendor = mergedProduct.vendors.find(v => v.vendor_id === product.vendor_id)
+      if (existingVendor) {
+        existingVendor.quantity += product.quantity
+      } else {
+        mergedProduct.vendors.push({
+          vendor_id: product.vendor_id,
+          vendor_name: product.vendor || '—',
+          quantity: product.quantity,
+          vendor_price: product.vendor_price
+        })
+      }
       
       // Track warehouses (deduplicate by warehouse_id)
       const whId = product.warehouse_id ?? null
@@ -664,7 +671,7 @@ export default function InventoryTable() {
         ) : (
           getFilteredMergedProducts().length > 0 ? getFilteredMergedProducts().map((row) => (
             <div
-              key={row.product_id}
+              key={row.sku}
               className={clsx(
                 'group border rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200',
                 row.quantity < row.reorder_threshold 
@@ -842,11 +849,11 @@ export default function InventoryTable() {
               <th className="px-4 py-2">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody key={viewMode}>
             {viewMode === 'separate' ? (
               filtered && filtered.length > 0 ? filtered.map((row) => (
                 <tr
-                  key={`${row.product_id}-${row.vendor_id}`}
+                  key={`sep-${row.product_id}-${row.vendor_id}-${row.warehouse_id}`}
                   className={clsx(
                     'border-t',
                     row.quantity < row.reorder_threshold ? 'bg-red-50' : ''
@@ -933,7 +940,7 @@ export default function InventoryTable() {
             ) : (
               getFilteredMergedProducts().length > 0 ? getFilteredMergedProducts().map((row: MergedProduct) => (
                 <tr
-                  key={row.product_id}
+                  key={`merged-${row.sku}`}
                   className={clsx(
                     'border-t',
                     row.quantity < row.reorder_threshold ? 'bg-red-50' : ''
@@ -1052,31 +1059,55 @@ export default function InventoryTable() {
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-1">
-                      {row.vendors.map((vendor) => (
-                        <AdjustInventoryModal
-                          key={`${row.product_id}-${vendor.vendor_id}`}
-                          productId={row.product_id}
-                          vendorId={vendor.vendor_id}
-                          vendorName={vendor.vendor_name}
-                          currentStock={vendor.quantity}
-                          onSave={handleInventoryUpdate}
-                          trigger={
-                            <Button variant="outline" size="sm" className="h-8 w-8 p-0" title={`Adjust ${vendor.vendor_name} Stock`}>
-                              <Settings className="h-4 w-4" />
+                      <AdjustInventoryModal
+                        productId={row.product_id}
+                        vendorId={row.vendors[0]?.vendor_id ?? 0}
+                        vendorName={row.vendors[0]?.vendor_name || '—'}
+                        currentStock={row.quantity}
+                        warehouses={row.warehouses.map(wh => ({
+                          warehouse_id: wh.warehouse_id ?? 1,
+                          warehouse_name: wh.warehouse_name,
+                          warehouse_code: wh.warehouse_code,
+                          quantity: wh.quantity
+                        }))}
+                        onSave={handleInventoryUpdate}
+                        trigger={
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Adjust Inventory">
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
+                      <ProductDetailsButton
+                        productId={row.product_id}
+                        initialData={{
+                          name: row.name,
+                          sku: row.sku,
+                          vendor_id: row.vendors[0]?.vendor_id ?? 0,
+                          reorder_threshold: row.reorder_threshold,
+                          category: row.category,
+                          quantity: row.quantity
+                        }}
+                        onSave={handleProductUpdate}
+                        trigger={
+                          <Tooltip content="Product Details" delay={750}>
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                              <Info className="h-4 w-4" />
                             </Button>
-                          }
-                        />
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/admin/products/${row.product_id}`)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      </Button>
+                          </Tooltip>
+                        }
+                      />
+                      <Tooltip content="View Profile" delay={750}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/admin/products/${row.product_id}`)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </Button>
+                      </Tooltip>
                       <InventoryHistoryDialog
                         productId={row.product_id}
                         role={user.role}
