@@ -226,6 +226,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
   const [warehouseStock, setWarehouseStock] = useState<WarehouseStock[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [priceUpdateConfirm, setPriceUpdateConfirm] = useState<{
     show: boolean
     field: string
@@ -246,6 +247,7 @@ function ProductProfileContent({ productId }: { productId: string }) {
     abortControllerRef.current = controller
     
     setLoading(true)
+    setError(null)
     try {
       const productRes = await apiCall(`/api/inventory/${productId}`, { signal: controller.signal })
       
@@ -272,6 +274,9 @@ function ProductProfileContent({ productId }: { productId: string }) {
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
         console.error('Error fetching product profile:', err)
+        if (!controller.signal.aborted) {
+          setError(err?.message || 'Failed to load product')
+        }
       }
     } finally {
       if (!controller.signal.aborted) {
@@ -389,7 +394,18 @@ function ProductProfileContent({ productId }: { productId: string }) {
   }, [user, productId, fetchProductProfile])
 
   if (!user) return <div className="p-6">Unauthorized</div>
-  if (loading || !product) return <div className="p-6">Loading product...</div>
+  if (loading) return <div className="p-6">Loading product...</div>
+  if (error || !product) return (
+    <div className="p-6">
+      <p className="text-red-600 mb-4">{error || 'Product not found'}</p>
+      <Button variant="outline" onClick={() => router.push('/admin/products')}>
+        ← Back to Products
+      </Button>
+      <Button variant="outline" className="ml-2" onClick={() => { setLoading(true); setError(null); fetchProductProfile(); }}>
+        Retry
+      </Button>
+    </div>
+  )
 
   return (
     <main className="p-4 md:p-6">
