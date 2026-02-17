@@ -22,48 +22,35 @@ function BarcodeImage({ productId }: { productId: number }) {
   const [barcodeUrl, setBarcodeUrl] = useState<string | null>(null)
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(false)
-  const loadingRef = useRef(false)
-
-  const fetchBarcode = useCallback(async () => {
-    if (loadingRef.current) return
-    
-    loadingRef.current = true
-    setLoading(true)
-    try {
-      const response = await apiCall(`/api/inventory/${productId}/barcode.png`, { 
-        headers: {
-          'Accept': 'image/png' 
-        }
-      })
-      
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = URL.createObjectURL(blob)
-        setBarcodeUrl(url)
-      } else {
-        setError(true)
-      }
-    } catch (err) {
-      console.error('Error fetching barcode:', err)
-      setError(true)
-    } finally {
-      loadingRef.current = false
-      setLoading(false)
-    }
-  }, [productId])
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
-    if (productId && !loading && !barcodeUrl && !error) {
-      fetchBarcode()
-    }
+    if (!productId || fetchedRef.current) return
+    fetchedRef.current = true
     
-    // Cleanup URL object when component unmounts
+    setLoading(true)
+    apiCall(`/api/inventory/${productId}/barcode.png`, { 
+      headers: { 'Accept': 'image/png' }
+    })
+      .then(response => {
+        if (response.ok) {
+          return response.blob().then(blob => {
+            setBarcodeUrl(URL.createObjectURL(blob))
+          })
+        } else {
+          setError(true)
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching barcode:', err)
+        setError(true)
+      })
+      .finally(() => setLoading(false))
+    
     return () => {
-      if (barcodeUrl) {
-        URL.revokeObjectURL(barcodeUrl)
-      }
+      if (barcodeUrl) URL.revokeObjectURL(barcodeUrl)
     }
-  }, [productId, loading, barcodeUrl, error, fetchBarcode])
+  }, [productId])
 
   if (error) {
     return (
@@ -230,11 +217,9 @@ interface WarehouseStock {
   quantity: number
 }
 
-export default function ProductProfilePage() {
+function ProductProfileContent({ productId }: { productId: string }) {
   const { user } = useUser()
   const router = useRouter()
-  const params = useParams()
-  const productId = params?.id
 
   const [product, setProduct] = useState<Product | null>(null)
   const [vendorInfos, setVendorInfos] = useState<VendorInfo[]>([])
@@ -936,4 +921,12 @@ export default function ProductProfilePage() {
       )}
     </main>
   )
+}
+
+// Wrapper that forces full remount when productId changes
+// This prevents stale state when navigating between product profiles
+export default function ProductProfilePage() {
+  const params = useParams()
+  const productId = params?.id as string
+  return <ProductProfileContent key={productId} productId={productId} />
 }

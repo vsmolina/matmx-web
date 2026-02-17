@@ -39,7 +39,7 @@ export default function VendorsPage() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [loading, setLoading] = useState(true)
-  const loadingRef = useRef(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Debounce search
   useEffect(() => {
@@ -50,22 +50,32 @@ export default function VendorsPage() {
   }, [search])
 
   const fetchVendors = useCallback(async () => {
-    if (loadingRef.current || !user) return
+    if (!user) return
     
-    loadingRef.current = true
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+    
     setLoading(true)
     try {
-      const res = await apiCall('/api/vendors')
+      const res = await apiCall('/api/vendors', { signal: controller.signal })
       const data = await res.json()
-      setVendors(data.vendors || [])
-      setFiltered(data.vendors || [])
-    } catch (err) {
-      console.error('Error loading vendors:', err)
-      setVendors([])
-      setFiltered([])
+      if (!controller.signal.aborted) {
+        setVendors(data.vendors || [])
+        setFiltered(data.vendors || [])
+      }
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Error loading vendors:', err)
+        setVendors([])
+        setFiltered([])
+      }
     } finally {
-      loadingRef.current = false
-      setLoading(false)
+      if (!controller.signal.aborted) {
+        setLoading(false)
+      }
     }
   }, [user])
 
@@ -83,9 +93,7 @@ export default function VendorsPage() {
   }
 
   const handleVendorUpdate = useCallback(() => {
-    if (!loadingRef.current) {
-      fetchVendors()
-    }
+    fetchVendors()
   }, [fetchVendors])
 
   useEffect(() => {
