@@ -527,7 +527,6 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
                     type="number" 
                     {...register('initial_stock', { valueAsNumber: true })} 
                     placeholder="0"
-                    required 
                     readOnly={mode === 'edit'}
                     className={`h-11 border-2 focus:border-green-400 ${
                       mode === 'edit' 
@@ -568,7 +567,6 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
                   type="number" 
                   {...register('reorder_threshold', { valueAsNumber: true })} 
                   placeholder="e.g. 10"
-                  required 
                   className="h-11 border-2 border-gray-200 focus:border-green-400 bg-white"
                 />
               </div>
@@ -580,7 +578,6 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
                   step="0.01" 
                   {...register('unit_price', { valueAsNumber: true })} 
                   placeholder="0.00"
-                  required 
                   className="h-11 border-2 border-gray-200 focus:border-green-400 bg-white"
                 />
               </div>
@@ -592,7 +589,6 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
                   step="0.01" 
                   {...register('selling_price', { valueAsNumber: true })} 
                   placeholder="0.00"
-                  required 
                   className="h-11 border-2 border-gray-200 focus:border-green-400 bg-white"
                 />
               </div>
@@ -614,7 +610,6 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
                   type="number" 
                   {...register('lead_time_days', { valueAsNumber: true })} 
                   placeholder="e.g. 14"
-                  required 
                   className="h-11 border-2 border-gray-200 focus:border-orange-400 bg-white"
                 />
               </div>
@@ -624,7 +619,6 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
                 <Input 
                   {...register('payment_terms')} 
                   placeholder="e.g. Net 30, COD, etc."
-                  required 
                   className="h-11 border-2 border-gray-200 focus:border-orange-400 bg-white"
                 />
               </div>
