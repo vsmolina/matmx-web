@@ -5,6 +5,7 @@ import { Product } from '@/types/ProductTypes'
 import { useUser } from '@/context/UserContext'
 import { Input } from '@/components/ui/input'
 import clsx from 'clsx'
+import { apiCall } from '@/lib/api'
 
 interface InventoryTableViewOnlyProps {
   searchTerm?: string
@@ -21,9 +22,7 @@ export default function InventoryTableViewOnly({ searchTerm = '', onSearchChange
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/inventory', {
-        credentials: 'include',
-      })
+      const res = await apiCall('/api/inventory')
       const data = await res.json()
       
       // Handle different possible response structures
@@ -107,7 +106,7 @@ export default function InventoryTableViewOnly({ searchTerm = '', onSearchChange
         {filteredProducts && filteredProducts.length > 0 ? (
           filteredProducts.map((product) => (
             <div
-              key={product.product_id ?? `${product.sku}-${product.vendor}-${product.name}`}
+              key={(product as any).product_id ?? `${product.sku}-${product.vendor}-${product.name}`}
               className={clsx(
                 'bg-white border rounded-lg p-4 shadow-sm',
                 product.quantity && product.reorder_threshold && product.quantity < product.reorder_threshold 
@@ -172,7 +171,7 @@ export default function InventoryTableViewOnly({ searchTerm = '', onSearchChange
             {filteredProducts && filteredProducts.length > 0 ? (
               filteredProducts.map((product) => (
                 <tr 
-                  key={product.product_id ?? `${product.sku}-${product.vendor}-${product.name}`} 
+                  key={(product as any).product_id ?? `${product.sku}-${product.vendor}-${product.name}`} 
                   className={clsx(
                     'border-t',
                     product.quantity && product.reorder_threshold && product.quantity < product.reorder_threshold 

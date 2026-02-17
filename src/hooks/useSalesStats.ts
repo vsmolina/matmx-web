@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiCall } from '@/lib/api'
 
 interface SalesStats {
   totalQuotes: number
@@ -26,9 +27,7 @@ export function useSalesStats() {
       setError(null)
 
       try {
-        const res = await fetch('http://localhost:4000/api/sales/metrics', {
-          credentials: 'include'
-        })
+        const res = await apiCall('/api/sales/metrics')
 
         if (!res.ok) throw new Error('Failed to fetch stats')
 

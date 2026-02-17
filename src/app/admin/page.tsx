@@ -14,6 +14,7 @@ import CustomerGrowthChart from '@/components/dashboard/CustomerGrowthChart'
 import InventoryLevelsChart from '@/components/dashboard/InventoryLevelsChart'
 import RecentOrdersTable from '@/components/dashboard/RecentOrdersTable'
 import LowStockProductsTable from '@/components/dashboard/LowStockProductsTable'
+import { apiCall } from '@/lib/api'
 
 interface DashboardStats {
   revenue: { value: number; growth: number }
@@ -39,9 +40,7 @@ export default function AdminDashboardPage() {
     loadingRef.current = true
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:4000/api/dashboard/stats', {
-        credentials: 'include'
-      })
+      const response = await apiCall('/api/dashboard/stats')
       const data = await response.json()
       if (data.success) {
         setStats(data.data)

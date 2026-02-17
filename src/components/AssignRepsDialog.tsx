@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import toast from 'react-hot-toast'
 import { Users, UserCheck, CheckCircle, Info } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 export default function AssignRepsDialog({ customerId, open, onOpenChange, currentUserIds = [], onSuccess }: any) {
   const [users, setUsers] = useState<any[]>([])
@@ -16,9 +17,7 @@ export default function AssignRepsDialog({ customerId, open, onOpenChange, curre
   useEffect(() => {
   if (!open) return
 
-  fetch('http://localhost:4000/api/users', {
-    credentials: 'include'
-  })
+  apiCall('/api/users')
       .then(async (res) => {
         const text = await res.text()
         try {
@@ -38,9 +37,8 @@ export default function AssignRepsDialog({ customerId, open, onOpenChange, curre
   const saveAssignments = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/crm/${customerId}/assign`, {
+      const res = await apiCall(`/api/crm/${customerId}/assign`, { 
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_ids: cleanUserIds })
       })

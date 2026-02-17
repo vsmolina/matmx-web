@@ -23,12 +23,14 @@ import { Button } from '@/components/ui/button'
 import { useForm } from 'react-hook-form'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 interface Props {
   productId: number
   vendorId: number
   vendorName: string
   currentStock: number
+  warehouseId?: number
   onSave: () => void
   trigger: React.ReactNode
 }
@@ -40,6 +42,7 @@ export default function AdjustInventoryModal({
   vendorId,
   vendorName,
   currentStock,
+  warehouseId,
   onSave,
   trigger,
 }: Props) {
@@ -78,27 +81,41 @@ export default function AdjustInventoryModal({
     }
 
     try {
-      const res = await fetch(`http://localhost:4000/api/inventory/${productId}/receive`, {
-        method: 'POST',
-        credentials: 'include',
+      const requestBody = {
+        vendor_id: vendorId,
+        warehouse_id: warehouseId || 1, // Default to warehouse 1 if not provided
+        adjustment_type: mode, // 'relative' or 'absolute'
+        quantity: parsedQuantity, // Use the raw quantity input
+        reason: watch('reason'),
+        note: watch('note'),
+      };
+
+      console.log('🔧 Adjusting inventory:', requestBody);
+      console.log('🔧 Endpoint:', `/api/inventory/${productId}/adjust`);
+
+      const res = await apiCall(`/api/inventory/${productId}/adjust`, { 
+        method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vendor_id: vendorId,
-          quantity: changeAmount,
-          reason: watch('reason'),
-          note: watch('note'),
-        }),
+        body: JSON.stringify(requestBody),
       })
 
-      if (!res.ok) throw new Error('Failed to receive inventory')
+      console.log('🔧 Response status:', res.status, res.statusText);
 
-      toast.success('Inventory updated')
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to adjust inventory');
+      }
+
+      const result = await res.json();
+      console.log('Adjustment result:', result);
+
+      toast.success(`Inventory adjusted: ${result.previousStock} → ${result.newStock} units`);
       reset()
       onSave()
       setOpen(false)
     } catch (err) {
-      console.error(err)
-      toast.error('Failed to receive inventory')
+      console.error('Inventory adjustment error:', err)
+      toast.error(err instanceof Error ? err.message : 'Failed to adjust inventory')
     }
   }
 

@@ -14,6 +14,7 @@ import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import AdjustInventoryModal from '@/components/AdjustInventoryModal'
+import { apiCall } from '@/lib/api'
 
 interface Product {
   id?: number
@@ -23,6 +24,7 @@ interface Product {
   vendor_id: number  // Form field name
   reorder_threshold: number
   unit_price: number  // Vendor price
+  vendor_price?: number  // Alternative vendor price field for imported products
   selling_price: number  // Product selling price
   category: string
   notes?: string
@@ -66,7 +68,10 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
     defaultValues: defaultValues ? {
       ...defaultValues,
       vendor_id: defaultValues.vendor_id || defaultValues.vendor || 0,
-      initial_stock: mode === 'edit' ? (defaultValues.quantity || 0) : (defaultValues.initial_stock || 0)
+      initial_stock: mode === 'edit' ? (defaultValues.quantity || 0) : (defaultValues.initial_stock || 0),
+      // Ensure vendor price is properly mapped for imported products
+      unit_price: defaultValues.vendor_price || defaultValues.unit_price || 0,
+      selling_price: defaultValues.selling_price || defaultValues.unit_price || 0
     } : {
       name: '',
       sku: '',
@@ -97,9 +102,7 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
   useEffect(() => {
     async function fetchVendors() {
       try {
-        const res = await fetch('http://localhost:4000/api/vendors', {
-          credentials: 'include'
-        })
+        const res = await apiCall('/api/vendors')
         const data = await res.json()
         setVendors(data.vendors || [])
       } catch (err) {
@@ -112,11 +115,8 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
   // Fetch barcode for edit mode
   const fetchBarcode = async (productId: number) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/inventory/${productId}/barcode.png`, {
-        credentials: 'include',
-        headers: {
-          'Accept': 'image/png',
-        }
+      const res = await apiCall(`/api/inventory/${productId}/barcode.png`, { 
+        headers: { 'Accept': 'image/png' }
       })
       
       if (!res.ok) {
@@ -163,9 +163,7 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
         } else if (vendorId) {
           // Fallback to fetching vendor terms if not provided
           try {
-            const res = await fetch(`http://localhost:4000/api/inventory/${defaultValues.id}/vendor-terms`, {
-              credentials: 'include'
-            })
+            const res = await apiCall(`/api/inventory/${defaultValues.id}/vendor-terms`)
             if (res.ok) {
               const vendorTermsList = await res.json()
               // Find the terms for the current vendor
@@ -194,11 +192,23 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
     }
 
     if (defaultValues) {
-      // Ensure vendor_id is set from vendor field if needed
+      // Ensure vendor_id is set from vendor field if needed and price fields are properly mapped
       const formData = {
         ...defaultValues,
         vendor_id: defaultValues.vendor_id || defaultValues.vendor || 0,
-        initial_stock: mode === 'edit' ? (defaultValues.quantity || 0) : (defaultValues.initial_stock || 0)
+        initial_stock: mode === 'edit' ? (defaultValues.quantity || 0) : (defaultValues.initial_stock || 0),
+        // Ensure vendor price is properly mapped for imported products
+        unit_price: defaultValues.vendor_price || defaultValues.unit_price || 0,
+        selling_price: defaultValues.selling_price || defaultValues.unit_price || 0,
+        // Ensure all text fields have defaults to prevent undefined
+        name: defaultValues.name || '',
+        sku: defaultValues.sku || '',
+        category: defaultValues.category || '',
+        notes: defaultValues.notes || '',
+        payment_terms: defaultValues.payment_terms || '',
+        vendor_notes: defaultValues.vendor_notes || '',
+        lead_time_days: defaultValues.lead_time_days || 0,
+        reorder_threshold: defaultValues.reorder_threshold || 0
       };
       reset(formData);
       
@@ -217,9 +227,7 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
         // Delay fetching slightly to prevent racing on render
         setTimeout(async () => {
           try {
-            const res = await fetch(`http://localhost:4000/api/vendors/${value.vendor_id}/default-terms`, {
-              credentials: 'include'
-            })
+            const res = await apiCall(`/api/vendors/${value.vendor_id}/default-terms`)
             if (res.ok) {
               const terms = await res.json()
               setValue('lead_time_days', terms.lead_time_days)
@@ -240,9 +248,7 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
   const refreshCurrentStock = async () => {
     if (mode === 'edit' && defaultValues?.id && defaultValues?.vendor_id) {
       try {
-        const res = await fetch(`http://localhost:4000/api/inventory`, {
-          credentials: 'include',
-        });
+        const res = await apiCall('/api/inventory');
         const data = await res.json();
         const products = data.products || [];
         
@@ -270,10 +276,9 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
 
     setIsGeneratingBarcode(true)
     try {
-      const res = await fetch('http://localhost:4000/api/inventory/barcodes/generate', {
+      const res = await apiCall('/api/inventory/barcodes/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ productIds: [defaultValues.id] })
       })
 
@@ -313,14 +318,13 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
     if (!priceConflict.payload) return
     
     try {
-      const res = await fetch(
+      const res = await apiCall(
         mode === 'add'
-          ? 'http://localhost:4000/api/inventory/force'
-          : `http://localhost:4000/api/inventory/${defaultValues?.id}/force`,
+          ? '/api/inventory/force'
+          : `/api/inventory/${defaultValues?.id}/force`,
         {
           method: mode === 'add' ? 'POST' : 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify(priceConflict.payload)
         }
       )
@@ -342,7 +346,7 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
   const onSubmit = async (data: Product) => {
     try {
       // In edit mode, exclude initial_stock from the payload since it should only be changed via AdjustInventoryModal
-      let payload = { ...data };
+      let payload: any = { ...data };
       if (mode === 'edit') {
         const { initial_stock, ...rest } = payload;
         payload = rest;
@@ -355,14 +359,13 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
       }
       
       
-      const res = await fetch(
+      const res = await apiCall(
         mode === 'add'
-          ? 'http://localhost:4000/api/inventory'
-          : `http://localhost:4000/api/inventory/${defaultValues?.id}`,
+          ? '/api/inventory'
+          : `/api/inventory/${defaultValues?.id}`,
         {
           method: mode === 'add' ? 'POST' : 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify(payload)
         }
       )

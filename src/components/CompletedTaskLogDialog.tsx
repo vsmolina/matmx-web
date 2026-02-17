@@ -1,4 +1,5 @@
 'use client'
+import { getApiBaseUrl } from '@/lib/api'
 
 import { useEffect, useState } from 'react'
 import {
@@ -16,6 +17,7 @@ import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Undo2, Calendar, User } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 interface Task {
   id: number
@@ -49,8 +51,8 @@ export default function CompletedTaskLogDialog({
   const fetchTasks = () => {
     setLoading(true)
     const url = customerId
-      ? `http://localhost:4000/api/crm/tasks/completed?customerId=${customerId}`
-      : 'http://localhost:4000/api/crm/tasks/completed'
+      ? `${getApiBaseUrl()}/api/crm/tasks/completed?customerId=${customerId}`
+      : `${getApiBaseUrl()}/api/crm/tasks/completed`
 
     fetch(url, { credentials: 'include' })
       .then(res => res.json())
@@ -66,10 +68,7 @@ export default function CompletedTaskLogDialog({
   const handleUndo = async (taskId: number) => {
     setUndoingId(taskId)
     try {
-      const res = await fetch(`http://localhost:4000/api/crm/tasks/${taskId}/undo`, {
-        method: 'POST',
-        credentials: 'include'
-      })
+      const res = await apiCall(`/api/crm/tasks/${taskId}/undo`, { method: 'POST' })
       if (!res.ok) throw new Error('Failed to undo')
       toast.success('Task re-opened')
       fetchTasks()

@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { apiCall } from '@/lib/api'
 
 export default function AdminLogDialog({ customerId, open, onOpenChange }: any) {
   const [logs, setLogs] = useState([])
 
   useEffect(() => {
     if (!open) return
-    fetch(`http://localhost:4000/api/crm/${customerId}/logs`, {
-      credentials: 'include'
-    })
+    apiCall(`/api/crm/${customerId}/logs`)
       .then(res => res.json())
       .then(data => setLogs(data.logs || []))
       .catch(console.error)

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useUser } from '@/context/UserContext'
+import { apiCall } from '@/lib/api'
 
 export function useDashboardSummary() {
   const { user } = useUser()
@@ -18,8 +19,8 @@ export function useDashboardSummary() {
   //   const fetchData = async () => {
   //       try {
   //           const [tasksRes, customersRes] = await Promise.all([
-  //           fetch('http://localhost:4000/api/crm/tasks', { credentials: 'include' }),
-  //           fetch('http://localhost:4000/api/crm', { credentials: 'include' })
+  //           apiCall('/api/crm/tasks'),
+  //           apiCall('/api/crm')
   //           ])
 
   //           // Check for rate limiting

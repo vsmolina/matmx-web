@@ -23,6 +23,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { UserPlus, UserX, Edit, RotateCcw, Users, Shield, Eye, EyeOff } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 interface User {
   id: number
@@ -59,9 +60,7 @@ export default function ManageUsersPage() {
     setLoading(true)
     
     try {
-      const res = await fetch('http://localhost:4000/api/admin/users?page=1&limit=50&sort=name&order=asc', {
-        credentials: 'include',
-      })
+      const res = await apiCall('/api/admin/users?page=1&limit=50&sort=name&order=asc')
       if (!res.ok) {
         const errorData = await res.json()
         throw new Error('Unauthorized')
@@ -79,9 +78,7 @@ export default function ManageUsersPage() {
 
   const fetchCurrentUserId = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/me', {
-        credentials: 'include',
-      })
+      const res = await apiCall('/api/me')
       const data = await res.json()
       setCurrentUserId(data.user?.userId || null)
     } catch (error) {
@@ -94,9 +91,8 @@ export default function ManageUsersPage() {
   }, [fetchUsers, fetchCurrentUserId])
 
   const resetPassword = useCallback(async () => {
-    const res = await fetch(`http://localhost:4000/api/admin/users/${selectedUser?.id}/password`, {
+    const res = await apiCall(`/api/admin/users/${selectedUser?.id}/password`, { 
       method: 'PATCH',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: newPassword }),
     })
@@ -111,9 +107,8 @@ export default function ManageUsersPage() {
 
   const createUser = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    const res = await fetch('http://localhost:4000/api/admin/users', {
+    const res = await apiCall('/api/admin/users', { 
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password, role }),
     })
@@ -131,9 +126,8 @@ export default function ManageUsersPage() {
   }, [name, email, password, role, fetchUsers])
 
   const updateUser = useCallback(async () => {
-    const res = await fetch(`http://localhost:4000/api/admin/users/${selectedUser?.id}`, {
+    const res = await apiCall(`/api/admin/users/${selectedUser?.id}`, { 
       method: 'PATCH',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: selectedUser?.name,
@@ -164,11 +158,10 @@ export default function ManageUsersPage() {
       const action = user.active ? 'deactivating' : 'activating'
       
       
-      const res = await fetch(`http://localhost:4000/api/admin/users/${user.id}/${endpoint}`, {
+      const res = await apiCall(`/api/admin/users/${user.id}/${endpoint}`, { 
         method: 'PATCH',
-        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json' 
         }
       })
       
@@ -222,10 +215,7 @@ export default function ManageUsersPage() {
   const handleConfirmDelete = useCallback(async () => {
     if (!selectedUser) return
     
-    const res = await fetch(`http://localhost:4000/api/admin/users/${selectedUser.id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    })
+    const res = await apiCall(`/api/admin/users/${selectedUser.id}`, { method: 'DELETE' })
     if (res.ok) {
       toast.success('User deleted')
       setDeleteModalOpen(false)

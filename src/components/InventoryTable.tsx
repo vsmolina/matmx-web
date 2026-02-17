@@ -3,17 +3,19 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ChevronDown, Settings, Info } from 'lucide-react'
+import { ChevronDown, Settings, Info, MapPin } from 'lucide-react'
 import ProductModal from '@/components/ProductModal'
 import ExportCSVButton from './ExportCSVButton'
-import ImportCSVModal from './ImportCSVModal'
+import ImportExcelModal from './ImportExcelModal'
 import InventoryHistoryDialog from './InventoryHistoryDialog'
 import ImportLogDialog from './ImportLogDialog'
+import WarehouseTable from './WarehouseTable'
 import clsx from 'clsx'
 import { useUser } from '@/context/UserContext'
 import { useRouter } from 'next/navigation'
 import AdjustInventoryModal from '@/components/AdjustInventoryModal'
 import ProductDetailsButton from './ProductDetailsButton'
+import { apiCall } from '@/lib/api'
 
 // Simple tooltip component with delay
 function Tooltip({ children, content, delay = 500 }: { 
@@ -66,6 +68,16 @@ interface ProductVendorStock {
   category: string
   vendor_price: number
   selling_price: number
+  warehouse_id?: number
+  warehouse_name?: string
+  warehouse_code?: string
+}
+
+interface Warehouse {
+  id: number
+  name: string
+  code: string
+  is_active: boolean
 }
 
 type ViewMode = 'separate' | 'merged'
@@ -97,6 +109,8 @@ export default function InventoryTable() {
   const [viewMode, setViewMode] = useState<ViewMode>('separate')
   const router = useRouter()
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
+  const [selectedWarehouse, setSelectedWarehouse] = useState<number | null>(null)
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([])
   const [openDropdowns, setOpenDropdowns] = useState<{
     [key: string]: 'vendors' | 'prices' | null
   }>({})
@@ -120,12 +134,6 @@ export default function InventoryTable() {
     }))
   }
 
-  const closeDropdown = (productSku: string) => {
-    setOpenDropdowns(prev => ({
-      ...prev,
-      [productSku]: null
-    }))
-  }
 
   const fetchProducts = useCallback(async () => {
     // Prevent multiple simultaneous requests
@@ -136,9 +144,12 @@ export default function InventoryTable() {
     loadingRef.current = true
     setLoadingData(true)
     try {
-      const res = await fetch('http://localhost:4000/api/inventory', {
-        credentials: 'include',
-      })
+      let url = '/api/inventory'
+      if (selectedWarehouse) {
+        url += `?warehouse_id=${selectedWarehouse}`
+      }
+      
+      const res = await apiCall(url)
       const data = await res.json()
       
       // Handle different possible response structures
@@ -166,7 +177,7 @@ export default function InventoryTable() {
       loadingRef.current = false
       setLoadingData(false)
     }
-  }, [])
+  }, [selectedWarehouse])
 
   // Optimized handlers to prevent excessive API calls
   const handleInventoryUpdate = useCallback(() => {
@@ -220,11 +231,22 @@ export default function InventoryTable() {
     return Array.from(productMap.values())
   }
 
+  const fetchWarehouses = useCallback(async () => {
+    try {
+      const res = await apiCall('/api/warehouses')
+      const data = await res.json()
+      setWarehouses(data.warehouses || [])
+    } catch (err) {
+      console.error('Error fetching warehouses:', err)
+    }
+  }, [])
+
   useEffect(() => {
     if (!loading && user) {
       fetchProducts()
+      fetchWarehouses()
     }
-  }, [loading, user, fetchProducts])
+  }, [loading, user, fetchProducts, fetchWarehouses])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -275,6 +297,9 @@ export default function InventoryTable() {
 
   return (
     <div className="p-4">
+      {/* Warehouse Table - visible to all users */}
+      <WarehouseTable />
+      
       {/* Mobile Header */}
       <div className="mb-6 space-y-4 md:hidden">
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-4">
@@ -285,6 +310,23 @@ export default function InventoryTable() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-white/80 border-blue-200 focus:border-blue-400"
           />
+        </div>
+        
+        {/* Warehouse Filter for Mobile */}
+        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+          <MapPin className="h-4 w-4 text-gray-500" />
+          <select
+            value={selectedWarehouse || ''}
+            onChange={(e) => setSelectedWarehouse(e.target.value ? Number(e.target.value) : null)}
+            className="flex-1 text-sm bg-transparent border-none focus:outline-none"
+          >
+            <option value="">All Warehouses</option>
+            {warehouses.filter(w => w.is_active).map(warehouse => (
+              <option key={warehouse.id} value={warehouse.id}>
+                {warehouse.name} ({warehouse.code})
+              </option>
+            ))}
+          </select>
         </div>
         
         <div className="flex justify-center">
@@ -329,7 +371,7 @@ export default function InventoryTable() {
         </div>
         
         <div className="grid grid-cols-2 gap-3">
-          <ImportCSVModal onSuccess={handleProductUpdate} />
+          <ImportExcelModal onSuccess={handleProductUpdate} />
           {user?.role === 'super_admin' && <ImportLogDialog />}
         </div>
       </div>
@@ -337,15 +379,34 @@ export default function InventoryTable() {
       {/* Desktop Header */}
       <div className="mb-6 hidden md:block">
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Inventory Management</h1>
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4 text-center">Inventory Management</h1>
+          <div className="space-y-4">
+            {/* Search and View Mode Row */}
+            <div className="flex flex-col xl:flex-row items-center justify-center gap-4">
               <Input
                 placeholder="Search by name, SKU / Part #, or vendor..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-80 bg-white/80 border-blue-200 focus:border-blue-400"
+                className="w-full max-w-md bg-white/80 border-blue-200 focus:border-blue-400"
               />
+              
+              {/* Warehouse Filter */}
+              <div className="flex items-center gap-2 bg-white/60 border border-blue-200 rounded-lg px-3 py-2">
+                <MapPin className="h-4 w-4 text-gray-500" />
+                <select
+                  value={selectedWarehouse || ''}
+                  onChange={(e) => setSelectedWarehouse(e.target.value ? Number(e.target.value) : null)}
+                  className="text-sm bg-transparent border-none focus:outline-none cursor-pointer"
+                >
+                  <option value="">All Warehouses</option>
+                  {warehouses.filter(w => w.is_active).map(warehouse => (
+                    <option key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name} ({warehouse.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
               <div className="flex items-center gap-3 bg-white/60 border border-blue-200 rounded-lg px-3 py-2">
                 <label className="text-sm font-medium text-gray-700">View:</label>
                 <div className="bg-gray-100 rounded-md p-0.5 flex">
@@ -372,18 +433,20 @@ export default function InventoryTable() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            
+            {/* Action Buttons Row */}
+            <div className="flex flex-wrap justify-center gap-2">
               <ProductModal
                 mode="add"
                 onSave={handleProductUpdate}
                 trigger={
-                  <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+                  <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 font-semibold shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap">
                     Add Product
                   </Button>
                 }
               />
               <ExportCSVButton />
-              <ImportCSVModal onSuccess={handleProductUpdate} />
+              <ImportExcelModal onSuccess={handleProductUpdate} />
               {user?.role === 'super_admin' && <ImportLogDialog />}
             </div>
           </div>
@@ -747,6 +810,7 @@ export default function InventoryTable() {
             <tr>
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">SKU</th>
+              <th className="px-4 py-2">Warehouse</th>
               <th className="px-4 py-2">Vendor</th>
               <th className="px-4 py-2">Quantity</th>
               <th className="px-4 py-2">Reorder Level</th>
@@ -768,6 +832,12 @@ export default function InventoryTable() {
                 >
                   <td className="px-4 py-2">{row.name}</td>
                   <td className="px-4 py-2">{row.sku}</td>
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3 text-gray-400" />
+                      <span className="text-xs">{row.warehouse_code || 'N/A'}</span>
+                    </div>
+                  </td>
                   <td className="px-4 py-2">{row.vendor}</td>
                   <td className="px-4 py-2">{row.quantity}</td>
                   <td className="px-4 py-2">{row.reorder_threshold}</td>

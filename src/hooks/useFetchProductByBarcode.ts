@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Product } from '@/types/ProductTypes' // optional shared type
+import { apiCall } from '@/lib/api'
 
 export function useFetchProductByBarcode(barcode: string | null) {
   const [product, setProduct] = useState<Product | null>(null)
@@ -13,9 +14,7 @@ export function useFetchProductByBarcode(barcode: string | null) {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch(`http://localhost:4000/api/inventory/barcode/${barcode}`, {
-          credentials: 'include',
-        })
+        const res = await apiCall(`/api/inventory/barcode/${barcode}`)
         const data = await res.json()
         if (res.ok) {
           setProduct(data.product)

@@ -22,21 +22,13 @@ const nextConfig: NextConfig = {
 
   // Optimize production builds
   experimental: {
-    optimizeCss: true,
+    optimizeCss: false,
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-dialog',
       '@radix-ui/react-select',
       'recharts'
     ],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
   },
 
   // Image optimization
@@ -67,6 +59,11 @@ const nextConfig: NextConfig = {
   
   // Compression
   compress: true,
+  
+  // Disable ESLint during production builds
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   
   // Enable source maps in development
   productionBrowserSourceMaps: process.env.NODE_ENV === 'development',

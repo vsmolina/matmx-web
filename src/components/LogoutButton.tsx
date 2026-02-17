@@ -1,11 +1,10 @@
 'use client'
 
+import { apiCall } from '@/lib/api'
+
 export default function LogoutButton() {
   async function handleLogout() {
-    await fetch('http://localhost:4000/api/logout', {
-      method: 'POST',
-      credentials: 'include',
-    })
+    await apiCall('/api/logout', { method: 'POST' })
     window.location.href = '/admin/login'
   }
 

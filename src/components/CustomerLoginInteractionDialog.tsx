@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select'
 import toast from 'react-hot-toast'
 import { PhoneCall, Mail, Users, MessageCircle, FileText, CheckCircle, Info, Clock } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 export default function CustomerLogInteractionDialog({ customerId, open, onOpenChange, onSuccess }: any) {
   const [type, setType] = useState('call')
@@ -23,9 +24,8 @@ export default function CustomerLogInteractionDialog({ customerId, open, onOpenC
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/crm/${customerId}/interactions`, {
+      const res = await apiCall(`/api/crm/${customerId}/interactions`, { 
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, note })
       })

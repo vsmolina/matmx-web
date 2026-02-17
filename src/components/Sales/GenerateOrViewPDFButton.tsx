@@ -1,10 +1,12 @@
 'use client'
+import { getApiBaseUrl } from '@/lib/api'
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { FilePlus, FileText, Loader2, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 interface Props {
   quoteId: number
@@ -20,10 +22,7 @@ export default function GenerateOrViewPDFButton({ quoteId }: Props) {
 
   async function checkPDFExists() {
     try {
-      const res = await fetch(`http://localhost:4000/api/email/quote/${quoteId}/pdf`, { 
-        method: 'GET', 
-        credentials: 'include' 
-      })
+      const res = await apiCall(`/api/email/quote/${quoteId}/pdf`, { method: 'GET' })
       setHasPDF(res.ok)
     } catch (error) {
       // Silently handle 404 errors - PDF endpoint may not exist
@@ -34,10 +33,7 @@ export default function GenerateOrViewPDFButton({ quoteId }: Props) {
   async function handleGenerate() {
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/email/quotes/${quoteId}/generate-pdf`, {
-        method: 'POST',
-        credentials: 'include'
-      })
+      const res = await apiCall(`/api/email/quotes/${quoteId}/generate-pdf`, { method: 'POST' })
       if (!res.ok) throw new Error('Failed')
       toast.success('PDF generated')
       setHasPDF(true)
@@ -54,7 +50,7 @@ export default function GenerateOrViewPDFButton({ quoteId }: Props) {
         <TooltipTrigger asChild>
           {hasPDF ? (
             <a
-              href={`http://localhost:4000/api/email/quote/${quoteId}/pdf`}
+              href={`${getApiBaseUrl()}/api/email/quote/${quoteId}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
             >

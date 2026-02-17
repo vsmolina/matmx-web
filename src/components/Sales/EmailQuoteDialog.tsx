@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { toast } from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 interface EmailQuoteDialogProps {
   quoteId: number
@@ -22,9 +23,8 @@ export default function EmailQuoteDialog({ quoteId }: EmailQuoteDialogProps) {
   const handleSend = async () => {
     setSending(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/email/send`, {
+      const res = await apiCall('/api/email/send', { 
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'quote', id: quoteId })
       })

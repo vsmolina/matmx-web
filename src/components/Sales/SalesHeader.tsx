@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { useEffect, useState, useRef } from 'react'
+import { apiCall } from '@/lib/api'
 
 interface SalesHeaderProps {
   filter: {
@@ -19,8 +20,6 @@ interface SalesHeaderProps {
 
 export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps) {
   const { user } = useUser()
-  if (!user) return null
-
   const [localFilter, setLocalFilter] = useState(filter)
   const [reps, setReps] = useState<{ id: number; name: string }[]>([])
   const [customerSuggestions, setCustomerSuggestions] = useState<{ id: number; name: string }[]>([])
@@ -31,8 +30,8 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
 
   // Fetch sales reps
   useEffect(() => {
-    if (user.role === 'super_admin') {
-      fetch('http://localhost:4000/api/users/roles?role=sales_rep', { credentials: 'include' })
+    if (user && user.role === 'super_admin') {
+      apiCall('/api/users/roles?role=sales_rep')
         .then(res => {
           if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`)
@@ -53,11 +52,11 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
           setReps([])
         })
     }
-  }, [user.role])
+  }, [user?.role])
 
   // Fetch all customers on mount
   useEffect(() => {
-    fetch('http://localhost:4000/api/crm/', { credentials: 'include' })
+    apiCall('/api/crm/')
       .then(res => {
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`)
@@ -88,9 +87,7 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
         return
       }
 
-      fetch(`http://localhost:4000/api/crm/search?search=${encodeURIComponent(localFilter.customer)}`, {
-        credentials: 'include'
-      })
+      apiCall(`/api/crm/search?search=${encodeURIComponent(localFilter.customer)}`)
         .then(res => {
           if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`)
@@ -160,6 +157,8 @@ export default function SalesHeader({ filter, onFilterChange }: SalesHeaderProps
     setLocalFilter(updated)
     onFilterChange(updated)
   }
+
+  if (!user) return null
 
   const filteredList = localFilter.customer.length < 2
     ? allCustomers

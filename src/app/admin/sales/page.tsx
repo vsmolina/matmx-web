@@ -13,6 +13,7 @@ import AdminGuard from '@/components/AdminGuard'
 import { Quote } from '@/types/QuoteTypes'
 import { Order } from '@/types/OrderTypes'
 import { Plus, Eye, FileText, ShoppingCart } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 export default function SalesPage() {
   const [tab, setTab] = useState<'quotes' | 'orders'>('quotes')
@@ -21,6 +22,7 @@ export default function SalesPage() {
   const [reloadKey, setReloadKey] = useState(0)
   const [showCreate, setShowCreate] = useState(false)
   const [showFulfilled, setShowFulfilled] = useState(false)
+  const [fulfilledReloadKey, setFulfilledReloadKey] = useState(0)
   const [selectedQuoteId, setSelectedQuoteId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const loadingRef = useRef(false)
@@ -64,8 +66,8 @@ export default function SalesPage() {
       }).toString()
 
       const [quoteRes, orderRes] = await Promise.all([
-        fetch(`http://localhost:4000/api/sales/quotes?${query}`, { credentials: 'include' }),
-        fetch(`http://localhost:4000/api/sales/orders?${query}`, { credentials: 'include' })
+        apiCall(`/api/sales/quotes?${query}`),
+        apiCall(`/api/sales/orders?${query}`)
       ])
       const quoteData = await quoteRes.json()
       const orderData = await orderRes.json()
@@ -84,6 +86,7 @@ export default function SalesPage() {
   const handleDataUpdate = useCallback(() => {
     if (!loadingRef.current) {
       setReloadKey(k => k + 1)
+      setFulfilledReloadKey(k => k + 1)
     }
   }, [])
 
@@ -106,7 +109,7 @@ export default function SalesPage() {
                   <Button 
                     variant="outline" 
                     onClick={() => setShowFulfilled(true)}
-                    className="flex-1 sm:flex-none border-gray-300 hover:border-green-400 hover:text-green-600 transition-colors"
+                    className="flex-1 sm:flex-none border-blue-300 text-blue-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 transition-colors"
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     View Fulfilled Orders
@@ -148,6 +151,7 @@ export default function SalesPage() {
                     quotes={quotes}
                     onView={(quoteId) => setSelectedQuoteId(quoteId)}
                     onConvert={handleDataUpdate}
+                    onDeleted={handleDataUpdate}
                   />
                 </div>
               </div>
@@ -186,6 +190,7 @@ export default function SalesPage() {
           <FulfilledOrdersDialog
             open={showFulfilled}
             onClose={() => setShowFulfilled(false)}
+            reloadKey={fulfilledReloadKey}
           />
 
           {selectedQuoteId && (

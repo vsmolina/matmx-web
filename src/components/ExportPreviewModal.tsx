@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Download, Eye, Table, LayoutGrid } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 interface ProductVendorStock {
   product_id: number
@@ -38,13 +39,12 @@ export default function ExportPreviewModal({ trigger }: ExportPreviewModalProps)
   const [previewData, setPreviewData] = useState<ProductVendorStock[]>([])
   const [loading, setLoading] = useState(false)
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards')
+  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('xlsx')
 
   const fetchPreviewData = async () => {
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:4000/api/inventory', {
-        credentials: 'include',
-      })
+      const res = await apiCall('/api/inventory')
       const data = await res.json()
       
       let products = []
@@ -71,24 +71,25 @@ export default function ExportPreviewModal({ trigger }: ExportPreviewModalProps)
 
   const handleDownload = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/inventory/export', {
-        credentials: 'include',
-      })
+      const formatLabel = exportFormat === 'xlsx' ? 'Excel' : 'CSV'
+      const fileExtension = exportFormat === 'xlsx' ? 'xlsx' : 'csv'
 
-      if (!res.ok) throw new Error('Failed to export CSV')
+      const res = await apiCall(`/api/inventory/export?format=${exportFormat}`)
+
+      if (!res.ok) throw new Error(`Failed to export ${formatLabel}`)
 
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `inventory_export_${new Date().toISOString().split('T')[0]}.csv`
+      link.download = `inventory_export_${new Date().toISOString().split('T')[0]}.${fileExtension}`
       link.click()
       window.URL.revokeObjectURL(url)
-      toast.success('CSV downloaded successfully')
+      toast.success(`${formatLabel} file downloaded successfully`)
       setOpen(false)
     } catch (err) {
       console.error(err)
-      toast.error('Failed to download CSV')
+      toast.error(`Failed to download ${exportFormat === 'xlsx' ? 'Excel' : 'CSV'} file`)
     }
   }
 
@@ -168,10 +169,44 @@ export default function ExportPreviewModal({ trigger }: ExportPreviewModalProps)
                 </Button>
               </div>
             </div>
-            <Button onClick={handleDownload} disabled={loading || previewData.length === 0} className="w-full sm:w-auto">
-              <Download className="w-4 h-4 mr-2" />
-              Download CSV
-            </Button>
+
+            {/* Export format and download buttons */}
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              {/* Format selector */}
+              <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                <Button
+                  size="sm"
+                  variant={exportFormat === 'xlsx' ? 'default' : 'ghost'}
+                  onClick={() => setExportFormat('xlsx')}
+                  className="h-9 px-3 text-xs"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Excel
+                </Button>
+                <Button
+                  size="sm"
+                  variant={exportFormat === 'csv' ? 'default' : 'ghost'}
+                  onClick={() => setExportFormat('csv')}
+                  className="h-9 px-3 text-xs"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  CSV
+                </Button>
+              </div>
+
+              <Button
+                onClick={handleDownload}
+                disabled={loading || previewData.length === 0}
+                className="w-full sm:w-auto"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download {exportFormat === 'xlsx' ? 'Excel' : 'CSV'}
+              </Button>
+            </div>
           </div>
 
           <div className="flex-1 border rounded-lg overflow-hidden bg-white">
@@ -294,8 +329,13 @@ export default function ExportPreviewModal({ trigger }: ExportPreviewModalProps)
               </div>
             )}
             <div className="text-xs text-gray-500 p-3 bg-gray-50 rounded-lg">
-              <strong>💡 Note:</strong> The CSV export includes additional columns with vendor terms, 
-              stock status, and timestamp information not shown in this preview.
+              <strong>💡 Note:</strong> The export includes comprehensive data with vendor terms,
+              warehouse information, stock status, and timestamps not shown in this preview.
+              {exportFormat === 'xlsx' && (
+                <span className="block mt-1 text-green-600">
+                  ✨ Excel format includes formatted prices, dates, and optimized column widths for better readability.
+                </span>
+              )}
             </div>
           </div>
         </div>

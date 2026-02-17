@@ -1,6 +1,7 @@
 'use client'
+import { getApiBaseUrl } from '@/lib/api'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,7 +25,6 @@ export default function LabelPrintDialog({
   onConfirm
 }: LabelPrintDialogProps) {
   const [qty, setQty] = useState<number | ''>(defaultQty || 1)
-  const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (open) setQty(defaultQty)
@@ -32,13 +32,16 @@ export default function LabelPrintDialog({
 
   const handlePrint = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/print/print-label-csv', {
+      // First, create the print job on the server
+      const res = await fetch(`${getApiBaseUrl()}/api/print/print-label-csv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           sku: product.sku,
           quantity: qty || 1,
-          barcode_url: `http://localhost:4000/api/inventory/${product.id}/barcode.png`,
+          product_id: product.id,
+          barcode_url: `${getApiBaseUrl()}/api/inventory/${product.id}/barcode.png`,
         }),
       });
 
@@ -47,11 +50,185 @@ export default function LabelPrintDialog({
         throw new Error(data.error || 'Print failed');
       }
 
-      toast.success(`Print job created: ${data.file}`);
+      toast.success(`Print job created: ${data.quantity} labels`);
+
+      // Generate HTML content for Brother QL printer (62mm labels)
+      const labelHtml = generateBrotherQLLabels(product, qty || 1);
+
+      // Open print dialog with formatted labels
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(labelHtml);
+        printWindow.document.close();
+
+        // Small delay to ensure content is loaded
+        setTimeout(() => {
+          printWindow.print();
+          // Close window after print dialog
+          setTimeout(() => printWindow.close(), 1000);
+        }, 500);
+      } else {
+        toast.error('Pop-up blocked. Please allow pop-ups for label printing.');
+      }
+
+      // Close dialog after successful print
+      onOpenChange(false);
     } catch (err) {
       console.error('❌ Print failed:', err);
       toast.error('Failed to print labels');
     }
+  };
+
+  // Generate Brother QL-820NWB compatible HTML
+  const generateBrotherQLLabels = (product: Product, quantity: number) => {
+    const logoUrl = window.location.origin + '/matmx_logo.png';
+    const labels = Array.from({ length: quantity }).map((_, i) => `
+      <div class="label">
+        <div class="label-content">
+          <div class="top-section">
+            <div class="left-column">
+              <div class="product-name">${product.name || 'Product Name'}</div>
+              <div class="sku-line">SKU: ${product.sku}</div>
+            </div>
+            <div class="right-column">
+              <img src="${logoUrl}" alt="MatMX" class="logo" />
+            </div>
+          </div>
+
+          <div class="barcode-section">
+            <img src="${getApiBaseUrl()}/api/inventory/${product.id}/barcode.png" alt="Barcode" class="barcode-img" />
+            <div class="label-number">${i + 1} of ${quantity}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Print Labels - ${product.sku}</title>
+        <style>
+          @page {
+            /* Brother QL-820NWB DK-1208 label */
+            size: 90mm 38mm; /* DK-1208 large address label size */
+            margin: 0;
+          }
+
+          body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+          }
+
+          .label {
+            width: 90mm;
+            height: 38mm;
+            page-break-after: always;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+          }
+
+          .label:last-child {
+            page-break-after: auto;
+          }
+
+          .label-content {
+            width: 86mm;
+            height: 34mm;
+            padding: 2mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+          }
+
+          /* Top section with two columns */
+          .top-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            height: 18mm;
+            margin-bottom: 2mm;
+          }
+
+          /* Left column with product info */
+          .left-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            text-align: left;
+            padding-right: 3mm;
+          }
+
+          .product-name {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 3mm;
+            line-height: 1.1;
+            color: #000;
+            max-height: 10mm;
+            overflow: hidden;
+          }
+
+          .sku-line {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #333;
+          }
+
+          /* Right column with logo */
+          .right-column {
+            width: 25mm;
+            height: 18mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .logo {
+            max-height: 100%;
+            max-width: 100%;
+            height: auto;
+            width: auto;
+          }
+
+          /* Bottom barcode section */
+          .barcode-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+          }
+
+          .barcode-img {
+            max-width: 70mm;
+            max-height: 12mm;
+            height: auto;
+            margin-bottom: 1mm;
+          }
+
+          .label-number {
+            font-size: 8pt;
+            color: #666;
+          }
+
+          @media print {
+            body {
+              margin: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        ${labels}
+      </body>
+      </html>
+    `;
   };
 
   return (
@@ -81,19 +258,10 @@ export default function LabelPrintDialog({
           Print {qty || 0} Label{qty === 1 ? '' : 's'}
         </Button>
 
-        {/* Hidden label content for printing */}
-        <div className="hidden print:block" ref={printRef}>
-          {Array.from({ length: qty || 0 }).map((_, i) => (
-            <div className="label" key={i}>
-              <div className="logo">MatMX</div>
-              <div>SKU: {product.sku}</div>
-              <div>Packing #: ______</div>
-              <img
-                src={`http://localhost:4000/api/inventory/${product.id}/barcode.png`}
-                alt="Barcode"
-              />
-            </div>
-          ))}
+        <div className="text-xs text-gray-500 mt-2">
+          <p>Printer: Brother QL-820NWB</p>
+          <p>Label Size: 90mm x 38mm (DK-1208 Large Address)</p>
+          <p>Layout: Product Name & SKU (left) | Logo (right) | Barcode (bottom center)</p>
         </div>
       </DialogContent>
     </Dialog>

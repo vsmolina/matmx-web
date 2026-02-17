@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Shield, Lock, Eye, EyeOff, ArrowLeft, KeyRound } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -66,9 +67,8 @@ export default function AdminLoginPage() {
     const toastId = toast.loading('Logging in...')
 
     try {
-      const res = await fetch('http://localhost:4000/api/login', {
+      const res = await apiCall('/api/login', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })

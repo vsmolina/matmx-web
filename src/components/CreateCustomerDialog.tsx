@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import toast from 'react-hot-toast'
-import { 
+import { apiCall } from '@/lib/api'
+import {
   UserPlus, 
   User, 
   Building2, 
@@ -33,7 +34,7 @@ export default function CreateCustomerDialog({ open, onOpenChange, onSuccess }: 
     company: '',
     email: '',
     phone: '',
-    status: 'lead',
+    status: 'prospect',
     notes: ''
   })
   const [loading, setLoading] = useState(false)
@@ -58,10 +59,7 @@ export default function CreateCustomerDialog({ open, onOpenChange, onSuccess }: 
 
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:4000/api/crm', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await apiCall('/api/crm', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       })
       if (!res.ok) throw new Error('Failed to create customer')
@@ -73,7 +71,7 @@ export default function CreateCustomerDialog({ open, onOpenChange, onSuccess }: 
         company: '',
         email: '',
         phone: '',
-        status: 'lead',
+        status: 'prospect',
         notes: ''
       })
       
@@ -180,10 +178,10 @@ export default function CreateCustomerDialog({ open, onOpenChange, onSuccess }: 
                 <SelectValue placeholder="Select customer status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="lead">
+                <SelectItem value="prospect">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 bg-yellow-400 rounded-full"></div>
-                    <span>Lead</span>
+                    <div className="h-2 w-2 bg-blue-400 rounded-full"></div>
+                    <span>Prospect</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="active">
@@ -198,10 +196,16 @@ export default function CreateCustomerDialog({ open, onOpenChange, onSuccess }: 
                     <span>Inactive</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="prospect">
+                <SelectItem value="qualified">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 bg-blue-400 rounded-full"></div>
-                    <span>Prospect</span>
+                    <div className="h-2 w-2 bg-yellow-400 rounded-full"></div>
+                    <span>Qualified</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="converted">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 bg-purple-400 rounded-full"></div>
+                    <span>Converted</span>
                   </div>
                 </SelectItem>
               </SelectContent>

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { useState } from 'react'
+import { apiCall } from '@/lib/api'
 import { 
   Loader2, 
   Store, 
@@ -61,9 +62,8 @@ export default function VendorCreateModal({ onSaved, trigger }: Props) {
         notes: data.notes?.trim(),
       }
 
-      const res = await fetch(`http://localhost:4000/api/vendors`, {
+      const res = await apiCall('/api/vendors', { 
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(trimmedData),
       })

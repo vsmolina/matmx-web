@@ -1,4 +1,5 @@
 'use client'
+import { getApiBaseUrl } from '@/lib/api'
 
 import {
   Dialog,
@@ -16,6 +17,7 @@ import LineItemEditor from './LineItemEditor'
 import PriceSummaryBox from './PriceSummaryBox'
 import { toast } from 'react-hot-toast'
 import { Edit, FileText } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 interface QuoteItem {
   product_id: number
@@ -61,9 +63,7 @@ export default function QuoteDetailsDialog({
     }
     
     setLoading(true)
-    fetch(`http://localhost:4000/api/sales/quotes/${quoteId}`, {
-      credentials: 'include'
-    })
+    apiCall(`/api/sales/quotes/${quoteId}`)
       .then(res => res.json())
       .then(data => {
         setQuote(data)
@@ -79,7 +79,7 @@ export default function QuoteDetailsDialog({
   const handleSave = async () => {
     if (!quote) return
     
-    const res = await fetch(`http://localhost:4000/api/sales/quotes/${quoteId}`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/sales/quotes/${quoteId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

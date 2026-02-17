@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import SupplierBarcodeModal from './SupplierBarcodeModal';
+import { apiCall } from '@/lib/api'
 
 interface SupplierBarcode {
   id: number;
@@ -23,19 +24,14 @@ const [editing, setEditing] = useState<SupplierBarcode | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
 
   const fetchBarcodes = async () => {
-    const res = await fetch(`http://localhost:4000/api/inventory/${productId}/supplier-barcodes`, {
-      credentials: 'include',
-    });
+    const res = await apiCall(`/api/inventory/${productId}/supplier-barcodes`);
     const data = await res.json();
     setBarcodes(data.barcodes);
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this barcode?')) return;
-    const res = await fetch(`http://localhost:4000/api/inventory/supplier-barcodes/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
+    const res = await apiCall(`/api/inventory/supplier-barcodes/${id}`, { method: 'DELETE' });
     if (res.ok) fetchBarcodes();
   };
 

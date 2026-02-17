@@ -5,13 +5,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Order } from '@/types/OrderTypes'
 import OrderCard from './OrderCard'
+import { apiCall } from '@/lib/api'
 
 export default function FulfilledOrdersDialog({
   open,
-  onClose
+  onClose,
+  reloadKey
 }: {
   open: boolean
   onClose: () => void
+  reloadKey?: number
 }) {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(false)
@@ -19,9 +22,7 @@ export default function FulfilledOrdersDialog({
   const fetchOrders = async () => {
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:4000/api/sales/orders?status=fulfilled', {
-        credentials: 'include'
-      })
+      const res = await apiCall('/api/sales/orders?status=delivered')
       const data = await res.json()
       setOrders(
         data.orders.filter((o: Order) => o.fulfillment_date !== null)
@@ -35,7 +36,7 @@ export default function FulfilledOrdersDialog({
 
   useEffect(() => {
     if (open) fetchOrders()
-  }, [open])
+  }, [open, reloadKey])
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

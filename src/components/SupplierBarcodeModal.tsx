@@ -1,4 +1,5 @@
 'use client';
+import { getApiBaseUrl } from '@/lib/api'
 
 import { useEffect, useState } from 'react';
 import {
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
+import { apiCall } from '@/lib/api'
 
 interface Props {
   open: boolean;
@@ -39,9 +41,7 @@ export default function SupplierBarcodeModal({ open, onClose, productId, barcode
   const isEdit = !!barcode;
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/vendors`, {
-      credentials: 'include',
-    })
+    apiCall('/api/vendors')
       .then(res => res.json())
       .then(data => setVendors(data.vendors || []));
   }, []);
@@ -61,8 +61,8 @@ export default function SupplierBarcodeModal({ open, onClose, productId, barcode
 
       const res = await fetch(
         isEdit
-          ? `http://localhost:4000/api/inventory/supplier-barcodes/${barcode!.id}`
-          : `http://localhost:4000/api/inventory/${productId}/supplier-barcodes`,
+          ? `${getApiBaseUrl()}/api/inventory/supplier-barcodes/${barcode!.id}`
+          : `${getApiBaseUrl()}/api/inventory/${productId}/supplier-barcodes`,
         {
           method: isEdit ? 'PUT' : 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -12,6 +12,8 @@ import AssignRepsDialog from '@/components/AssignRepsDialog'
 import PipelineStageDialog from '@/components/PipelineStageDialog'
 import { MessageCircle, PhoneCall, Mail, Users, ArrowLeft, Edit, UserCheck, Target, Trash2, Clock, Building2, User, Phone, MapPin, FileText, Activity, AlertTriangle } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
+import { toast } from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 type LogType = 'call' | 'email' | 'meeting' | 'note'
 
@@ -33,7 +35,6 @@ export default function CustomerProfilePage() {
   const [showLog, setShowLog] = useState(false)
   const [showAssignDialog, setShowAssignDialog] = useState(false)
   const [showPipelineDialog, setShowPipelineDialog] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [logs, setLogs] = useState<any[]>([])
   const [pipeline, setPipeline] = useState<any[]>([])
 
@@ -44,9 +45,9 @@ export default function CustomerProfilePage() {
 
   const fetchAll = async () => {
     const [customerRes, tasksRes, logsRes] = await Promise.all([
-      fetch(`http://localhost:4000/api/crm/customers/${id}`, { credentials: 'include' }),
-      fetch(`http://localhost:4000/api/crm/tasks/customer/${id}/open`, { credentials: 'include' }),
-      fetch(`http://localhost:4000/api/crm/${id}/interactions`, { credentials: 'include' })
+      apiCall(`/api/crm/customers/${id}`),
+      apiCall(`/api/crm/tasks/customer/${id}/open`),
+      apiCall(`/api/crm/${id}/interactions`)
     ])
 
     const customerData = await customerRes.json()
@@ -60,31 +61,30 @@ export default function CustomerProfilePage() {
   }
 
   const fetchPipeline = async () => {
-    const res = await fetch(`http://localhost:4000/api/crm/${id}/pipeline`, { credentials: 'include' })
+    const res = await apiCall(`/api/crm/${id}/pipeline`)
     const data = await res.json()
     setPipeline(data.pipeline)
   }
 
   const refetchCustomer = async () => {
-    const res = await fetch(`http://localhost:4000/api/crm/customers/${id}`, {
-      credentials: 'include'
-    })
+    const res = await apiCall(`/api/crm/customers/${id}`)
     const data = await res.json()
     setCustomer(data.customer)
   }
 
   const handleDelete = async () => {
-    const res = await fetch(`http://localhost:4000/api/crm/customers/${id}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    })
+    try {
+      const res = await apiCall(`/api/crm/customers/${id}`, { method: 'DELETE' })
 
-    if (res.ok) {
-      alert('Customer deleted')
-      router.push('/admin/crm')
-    } else {
-      const data = await res.json()
-      alert(data.error || 'Failed to delete customer')
+      if (res.ok) {
+        toast.success(`Customer "${customer.name}" deleted successfully`)
+        router.push('/admin/crm')
+      } else {
+        const data = await res.json()
+        toast.error(data.error || 'Failed to delete customer')
+      }
+    } catch (error) {
+      toast.error('Failed to delete customer')
     }
   }
 
@@ -93,7 +93,6 @@ export default function CustomerProfilePage() {
   const handleShowEdit = useCallback(() => setShowEdit(true), [])
   const handleShowAssignDialog = useCallback(() => setShowAssignDialog(true), [])
   const handleShowPipelineDialog = useCallback(() => setShowPipelineDialog(true), [])
-  const handleShowDeleteModal = useCallback(() => setShowDeleteModal(true), [])
   const handleBackToList = useCallback(() => router.push('/admin/crm'), [router])
 
   if (!customer) return <div className="p-6">Loading...</div>
@@ -381,7 +380,7 @@ export default function CustomerProfilePage() {
             </p>
             <Button 
               variant="destructive" 
-              onClick={handleShowDeleteModal}
+              onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700 transition-colors duration-200"
             >
               <Trash2 className="h-4 w-4 mr-2" />
@@ -399,48 +398,6 @@ export default function CustomerProfilePage() {
       <PipelineStageDialog customerId={customer.id} open={showPipelineDialog} onOpenChange={setShowPipelineDialog} onSuccess={fetchPipeline} />
       <AssignRepsDialog customerId={customer.id} open={showAssignDialog} onOpenChange={setShowAssignDialog} currentUserIds={customer.assigned_user_ids} onSuccess={refetchCustomer} />
 
-      {/* Delete Confirmation Modal */}
-      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader className="pb-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-12 w-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <DialogTitle className="text-xl font-bold text-gray-900 text-left">
-                  Confirm Deletion
-                </DialogTitle>
-                <p className="text-sm text-gray-600 text-left">
-                  This action cannot be undone
-                </p>
-              </div>
-            </div>
-          </DialogHeader>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">
-              Are you sure you want to permanently delete <strong className="font-semibold">{customer.name}</strong> and all their associated tasks, logs, and records?
-            </p>
-          </div>
-          <DialogFooter className="gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDeleteModal(false)}
-              className="flex-1 border-2 border-gray-300 hover:bg-gray-50"
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete}
-              className="flex-1 bg-red-600 hover:bg-red-700 transition-colors duration-200"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

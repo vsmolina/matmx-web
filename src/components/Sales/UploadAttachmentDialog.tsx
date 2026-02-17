@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useState } from 'react'
 import { toast } from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 interface UploadAttachmentDialogProps {
   relatedType: 'quote' | 'order'
@@ -31,10 +32,9 @@ export default function UploadAttachmentDialog({ relatedType, relatedId }: Uploa
     formData.append('related_id', String(relatedId))
 
     try {
-      const res = await fetch(`http://localhost:4000/api/sales/${relatedType}s/${relatedId}/attachment`, {
+      const res = await apiCall(`/api/sales/${relatedType}s/${relatedId}/attachment`, { 
         method: 'POST',
-        body: formData,
-        credentials: 'include'
+        body: formData 
       })
 
       if (!res.ok) throw new Error()

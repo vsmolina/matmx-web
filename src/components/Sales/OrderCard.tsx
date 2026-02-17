@@ -1,4 +1,5 @@
 'use client'
+import { getApiBaseUrl } from '@/lib/api'
 
 import { Order } from '@/types/OrderTypes'
 import { Button } from '@/components/ui/button'
@@ -7,6 +8,7 @@ import { useState } from 'react'
 import { formatDate } from '@/lib/date'
 import { toast } from 'react-hot-toast'
 import { ShoppingCart, DollarSign, Calendar, Eye } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 type FulfillmentStatus = 'draft' | 'received' | 'packed' | 'fulfilled'
 
@@ -22,7 +24,7 @@ export default function OrderCard({
 
   const updateStatus = async (newStatus: FulfillmentStatus) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/sales/orders/${order.id}`, {
+      const res = await fetch(`${getApiBaseUrl()}/api/sales/orders/${order.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

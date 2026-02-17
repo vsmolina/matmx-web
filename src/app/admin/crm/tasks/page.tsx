@@ -9,6 +9,7 @@ import { useUser } from '@/context/UserContext'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { CheckSquare, ArrowLeft, History, Calendar } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 export default function CRMTaskPage() {
   const [groupedTasks, setGroupedTasks] = useState<any[]>([])
@@ -33,9 +34,7 @@ export default function CRMTaskPage() {
     setLoading(true)
     
     try {
-      const res = await fetch('http://localhost:4000/api/crm/tasks/grouped', { 
-        credentials: 'include' 
-      })
+      const res = await apiCall('/api/crm/tasks/grouped')
       const data = await res.json()
       setGroupedTasks(data.groupedTasks)
     } catch (error) {
@@ -75,7 +74,7 @@ export default function CRMTaskPage() {
   const filteredGroupedTasks = useMemo(() => {
     return groupedTasks.map((rep) => ({
       ...rep,
-      customers: rep.customers.map(c => ({
+      customers: rep.customers.map((c: any) => ({
         ...c,
         tasks: filterTasks(c.tasks || [])
       }))

@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 export default function LogInteractionDialog({ customerId, open, onOpenChange, onSuccess }: any) {
   const [type, setType] = useState('call')
@@ -16,9 +17,8 @@ export default function LogInteractionDialog({ customerId, open, onOpenChange, o
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/crm/${customerId}/logs`, {
+      const res = await apiCall(`/api/crm/${customerId}/logs`, { 
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, note })
       })

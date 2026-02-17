@@ -2,6 +2,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { apiCall } from '@/lib/api'
 
 interface User {
   userId: number
@@ -34,8 +35,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
       
-      const res = await fetch('http://localhost:4000/api/me', {
-        credentials: 'include',
+      const res = await apiCall('/api/me', {
         signal: controller.signal
       })
       

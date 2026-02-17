@@ -89,9 +89,9 @@ class PerformanceMonitor {
       const paint = performance.getEntriesByType('paint')
       
       const metrics: PageLoadMetrics = {
-        navigationStart: navigation.navigationStart,
-        domContentLoaded: navigation.domContentLoadedEventEnd - navigation.navigationStart,
-        loadComplete: navigation.loadEventEnd - navigation.navigationStart,
+        navigationStart: (navigation as any).navigationStart || navigation.startTime,
+        domContentLoaded: navigation.domContentLoadedEventEnd - ((navigation as any).navigationStart || navigation.startTime),
+        loadComplete: navigation.loadEventEnd - ((navigation as any).navigationStart || navigation.startTime),
       }
 
       // First Contentful Paint
@@ -112,8 +112,8 @@ class PerformanceMonitor {
         new PerformanceObserver((list) => {
           const entries = list.getEntries()
           entries.forEach(entry => {
-            if (entry.processingStart && entry.startTime) {
-              metrics.firstInputDelay = entry.processingStart - entry.startTime
+            if ((entry as any).processingStart && entry.startTime) {
+              metrics.firstInputDelay = (entry as any).processingStart - entry.startTime
             }
           })
         }).observe({ entryTypes: ['first-input'] })

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { useState } from 'react'
+import { apiCall } from '@/lib/api'
 
 interface Props {
   productId: number
@@ -46,9 +47,8 @@ export default function VendorTermsModal({ productId, vendorId, defaultValues, o
 
   const onSubmit = async (data: FormValues) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/vendors/${vendorId}/products/${productId}`, {
+      const res = await apiCall(`/api/vendors/${vendorId}/products/${productId}`, { 
         method: 'PUT',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })

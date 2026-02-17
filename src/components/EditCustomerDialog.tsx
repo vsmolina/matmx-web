@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 import { 
   Edit3,
   User,
@@ -34,9 +35,8 @@ export default function EditCustomerDialog({ customer, open, onOpenChange, onSav
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/crm/${customer.id}`, {
+      const res = await apiCall(`/api/crm/${customer.id}`, { 
         method: 'PUT',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       })

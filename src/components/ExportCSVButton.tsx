@@ -6,11 +6,11 @@ import ExportPreviewModal from './ExportPreviewModal'
 
 export default function ExportCSVButton() {
   return (
-    <ExportPreviewModal 
+    <ExportPreviewModal
       trigger={
-        <Button variant="outline">
+        <Button variant="outline" className="whitespace-nowrap">
           <Download className="w-4 h-4 mr-2" />
-          Export CSV
+          Export Data
         </Button>
       }
     />

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { format, subDays } from 'date-fns'
 import { History } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 interface Adjustment {
   id: number
@@ -62,9 +63,7 @@ export default function InventoryHistoryDialog({
   const fetchHistory = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/inventory/${productId}/history`, {
-        credentials: 'include',
-      })
+      const res = await apiCall(`/api/inventory/${productId}/history`)
       if (!res.ok) {
         const text = await res.text()
         console.error('Fetch failed:', text)

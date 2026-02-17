@@ -8,6 +8,7 @@ import TaskDialog from '@/components/TaskDialog'
 import { Button } from '@/components/ui/button'
 import CompletedTaskLogDialog from '@/components/CompletedTaskLogDialog'
 import { ArrowLeft, Plus, ClipboardList, CheckCircle, User, Target, Clock } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 export default function CustomerTaskPage() {
   const { id } = useParams()
@@ -21,9 +22,7 @@ export default function CustomerTaskPage() {
 
   const fetchTasks = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/crm/tasks/grouped', {
-        credentials: 'include'
-      })
+      const res = await apiCall('/api/crm/tasks/grouped')
       const data = await res.json()
       const filtered = data.groupedTasks
       .map((rep: any) => ({

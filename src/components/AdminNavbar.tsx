@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import clsx from 'clsx'
 import { Menu, ChevronDown, LogOut } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import { apiCall } from '@/lib/api'
 
 export default function AdminNavbar() {
   const pathname = usePathname()
@@ -18,9 +19,8 @@ export default function AdminNavbar() {
   const profileRef = useRef<HTMLDivElement>(null)
 
   const handleLogout = async () => {
-    const res = await fetch('http://localhost:4000/api/logout', {
+    const res = await apiCall('/api/logout', {
       method: 'POST',
-      credentials: 'include',
     })
 
     if (res.ok) {
@@ -31,6 +31,29 @@ export default function AdminNavbar() {
     }
   }
 
+  // Automatically close menus on route change
+  useEffect(() => {
+    setMenuOpen(false)
+    setProfileDropdownOpen(false)
+  }, [pathname])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   if (loading || !user) return null
 
   const roleLinks = {
@@ -38,6 +61,7 @@ export default function AdminNavbar() {
       { href: '/admin', label: 'Dashboard' },
       { href: '/admin/users', label: 'Users' },
       { href: '/admin/products', label: 'Products' },
+      { href: '/admin/anodizing', label: 'Anodizing' },
       { href: '/admin/vendors', label: 'Vendors' },
       { href: '/admin/crm', label: 'Customers' },
       { href: '/admin/sales', label: 'Quotes & Orders' },
@@ -46,6 +70,7 @@ export default function AdminNavbar() {
     ],
     inventory_manager: [
       { href: '/admin/products', label: 'Products' },
+      { href: '/admin/anodizing', label: 'Anodizing' },
       { href: '/admin/vendors', label: 'Vendors' },
       { href: '/admin/receiving', label: 'Receiving'},
     ],
@@ -56,6 +81,7 @@ export default function AdminNavbar() {
     ],
     sales_rep: [
       { href: '/admin/products', label: 'Products' },
+      { href: '/admin/anodizing', label: 'Anodizing' },
       { href: '/admin/crm', label: 'Customers' },
       { href: '/admin/sales', label: 'Quotes & Orders' },
       { href: '/admin/receiving', label: 'Receiving'},
@@ -72,28 +98,11 @@ export default function AdminNavbar() {
   const role = user.role as Role
   const links = roleLinks[role] || []
 
-  // Automatically close menus on route change
-  useEffect(() => {
-    setMenuOpen(false)
-    setProfileDropdownOpen(false)
-  }, [pathname])
-
   // Get current page label
   const getCurrentPageLabel = () => {
     const currentLink = links.find(link => link.href === pathname)
     return currentLink?.label || 'Dashboard'
   }
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
-        setProfileDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
   return (
     <>

@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from '@/components/ui/select'
 import toast from 'react-hot-toast'
 import { Target, TrendingUp, FileText, CheckCircle, Info, ArrowRight } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
-const STAGES = ['lead', 'qualified', 'proposal_sent', 'negotiation', 'won', 'lost']
+const STAGES = ['lead', 'prospect', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost']
 
 export default function PipelineStageDialog({ customerId, open, onOpenChange, onSuccess }: any) {
   const [stage, setStage] = useState('')
@@ -19,9 +20,8 @@ export default function PipelineStageDialog({ customerId, open, onOpenChange, on
   const submit = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/crm/${customerId}/pipeline`, {
+      const res = await apiCall(`/api/crm/${customerId}/pipeline`, { 
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stage, comment })
       })
@@ -39,11 +39,12 @@ export default function PipelineStageDialog({ customerId, open, onOpenChange, on
   const getStageColor = (stageName: string) => {
     const colors = {
       lead: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      prospect: 'bg-cyan-100 text-cyan-800 border-cyan-200',
       qualified: 'bg-blue-100 text-blue-800 border-blue-200',
-      proposal_sent: 'bg-purple-100 text-purple-800 border-purple-200',
+      proposal: 'bg-purple-100 text-purple-800 border-purple-200',
       negotiation: 'bg-orange-100 text-orange-800 border-orange-200',
-      won: 'bg-green-100 text-green-800 border-green-200',
-      lost: 'bg-red-100 text-red-800 border-red-200'
+      closed_won: 'bg-green-100 text-green-800 border-green-200',
+      closed_lost: 'bg-red-100 text-red-800 border-red-200'
     }
     return colors[stageName as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200'
   }

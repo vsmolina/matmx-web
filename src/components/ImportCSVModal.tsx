@@ -13,6 +13,7 @@ import { UploadCloud } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import toast from 'react-hot-toast'
 import { Textarea } from '@/components/ui/textarea'
+import { apiCall } from '@/lib/api'
 
 export default function ImportCSVModal({ onSuccess }: { onSuccess: () => void }) {
   const [open, setOpen] = useState(false)
@@ -48,10 +49,9 @@ export default function ImportCSVModal({ onSuccess }: { onSuccess: () => void })
 
     setUploading(true)
     try {
-      const res = await fetch('http://localhost:4000/api/inventory/import', {
+      const res = await apiCall('/api/inventory/import', { 
         method: 'POST',
-        credentials: 'include',
-        body: formData,
+        body: formData 
       })
 
       let data

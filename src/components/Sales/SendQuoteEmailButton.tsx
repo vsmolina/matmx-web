@@ -1,4 +1,5 @@
 'use client'
+import { getApiBaseUrl } from '@/lib/api'
 
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -7,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import toast from 'react-hot-toast'
 import { Mail } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 interface SendQuoteEmailButtonProps {
   quoteId: number
@@ -27,10 +29,7 @@ export default function SendQuoteEmailButton({ quoteId, customerEmail }: SendQuo
 
   async function checkPDFExists() {
     try {
-      const res = await fetch(`http://localhost:4000/api/email/quote/${quoteId}/pdf`, { 
-        method: 'GET', 
-        credentials: 'include' 
-      })
+      const res = await apiCall(`/api/email/quote/${quoteId}/pdf`, { method: 'GET' })
       setHasPDF(res.ok)
     } catch (error) {
       // Silently handle 404 errors - PDF endpoint may not exist
@@ -46,7 +45,7 @@ export default function SendQuoteEmailButton({ quoteId, customerEmail }: SendQuo
 
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:4000/api/email/send', {
+      const res = await fetch(`${getApiBaseUrl()}/api/email/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

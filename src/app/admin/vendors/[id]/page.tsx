@@ -5,6 +5,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { useUser } from '@/context/UserContext'
 import { Button } from '@/components/ui/button'
 import VendorTermsModal from '@/components/VendorTermsModal'
+import { apiCall } from '@/lib/api'
 
 interface Vendor {
   id: number
@@ -39,9 +40,7 @@ export default function VendorProfilePage() {
 
   const fetchVendor = async () => {
     try {
-      const res = await fetch(`http://localhost:4000/api/vendors/${vendorId}`, {
-        credentials: 'include'
-      })
+      const res = await apiCall(`/api/vendors/${vendorId}`)
       const data = await res.json()
       setVendor(data.vendor)
     } catch (err) {
@@ -51,9 +50,7 @@ export default function VendorProfilePage() {
 
   const fetchTerms = async () => {
     try {
-      const res = await fetch(`http://localhost:4000/api/vendors/${vendorId}/products`, {
-        credentials: 'include'
-      })
+      const res = await apiCall(`/api/vendors/${vendorId}/products`)
       const data = await res.json()
       setTerms(data.products)
     } catch (err) {

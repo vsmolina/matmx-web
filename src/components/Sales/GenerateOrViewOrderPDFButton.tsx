@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { FilePlus, ExternalLink, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 interface Props {
   orderId: number
@@ -20,7 +21,7 @@ export default function GenerateOrViewOrderPDFButton({ orderId }: Props) {
 
   async function checkPDFExists() {
     try {
-      const res = await fetch(`http://localhost:4000/api/email/orders/${orderId}/pdf`, { method: 'HEAD', credentials: 'include' })
+      const res = await apiCall(`/api/email/orders/${orderId}/pdf`, { method: 'HEAD' })
       setHasPDF(res.ok)
     } catch {
       setHasPDF(false)
@@ -30,10 +31,7 @@ export default function GenerateOrViewOrderPDFButton({ orderId }: Props) {
   async function handleGenerate() {
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/email/orders/${orderId}/generate-pdf`, {
-        method: 'POST',
-        credentials: 'include'
-      })
+      const res = await apiCall(`/api/email/orders/${orderId}/generate-pdf`, { method: 'POST' })
       if (!res.ok) throw new Error('Failed')
       toast.success('PDF generated')
       setHasPDF(true)
@@ -50,7 +48,7 @@ export default function GenerateOrViewOrderPDFButton({ orderId }: Props) {
         <TooltipTrigger asChild>
           {hasPDF ? (
             <a
-              href={`http://localhost:4000/api/email/orders/${orderId}/pdf`}
+              href={`${typeof window !== 'undefined' ? window.location.protocol + '//' + window.location.hostname + ':4000' : ''}/api/email/orders/${orderId}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
             >

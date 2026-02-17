@@ -7,27 +7,39 @@ import SendQuoteEmailButton from './SendQuoteEmailButton'
 import GenerateOrViewPDFButton from './GenerateOrViewPDFButton'
 import toast from 'react-hot-toast'
 import { Quote } from '@/types/QuoteTypes'
-import { FileText } from 'lucide-react'
+import { FileText, Trash2 } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 interface QuoteTableProps {
   quotes: Quote[]
   onView: (quoteId: number) => void
   onConvert: (quoteId: number) => void
+  onDeleted?: () => void
 }
 
 export default function QuoteTable({
   quotes,
   onView,
-  onConvert
+  onConvert,
+  onDeleted
 }: QuoteTableProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
+  const handleDelete = async (quoteId: number) => {
+    if (!confirm(`Are you sure you want to delete Quote #${quoteId}? This cannot be undone.`)) return
+    try {
+      const res = await apiCall(`/api/sales/quotes/${quoteId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      toast.success('Quote deleted')
+      onDeleted?.()
+    } catch (err) {
+      toast.error('Failed to delete quote')
+    }
+  }
+
   const handleConvert = async (quoteId: number) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/sales/quotes/${quoteId}/convert`, {
-        method: 'POST',
-        credentials: 'include'
-      })
+      const res = await apiCall(`/api/sales/quotes/${quoteId}/convert`, { method: 'POST' })
       if (!res.ok) throw new Error()
       toast.success('Quote converted to order')
       onConvert(quoteId)
@@ -98,6 +110,9 @@ export default function QuoteTable({
                   <GenerateOrViewPDFButton quoteId={quote.id} />
                   <SendQuoteEmailButton quoteId={quote.id} customerEmail={quote.customer_email} />
                   <Button size="sm" variant="ghost" onClick={() => handleConvert(quote.id)}>Convert</Button>
+                  <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-800 hover:bg-red-50" onClick={() => handleDelete(quote.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </td>
               </tr>
             )

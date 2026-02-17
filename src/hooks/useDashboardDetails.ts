@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiCall } from '@/lib/api'
 
 export function useDashboardDetails() {
   const [tasks, setTasks] = useState<any[]>([])
@@ -16,8 +17,8 @@ export function useDashboardDetails() {
     const fetchData = async () => {
       try {
         const [tasksRes, customersRes] = await Promise.all([
-          fetch('http://localhost:4000/api/crm/tasks', { credentials: 'include' }),
-          fetch('http://localhost:4000/api/crm', { credentials: 'include' })
+          apiCall('/api/crm/tasks'),
+          apiCall('/api/crm')
         ])
 
         const tasksData = await tasksRes.json()
@@ -49,9 +50,7 @@ export function useDashboardDetails() {
         const interactionCounts: Record<string, number> = {}
 
         for (const customer of customers) {
-          const res = await fetch(`http://localhost:4000/api/crm/${customer.id}/interactions`, {
-            credentials: 'include'
-          })
+          const res = await apiCall(`/api/crm/${customer.id}/interactions`)
           if (!res.ok) continue
           const json = await res.json()
           for (const log of json.logs) {

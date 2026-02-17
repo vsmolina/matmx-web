@@ -1,6 +1,8 @@
 'use client'
+import { getApiBaseUrl } from '@/lib/api'
 
 import { useEffect, useState } from 'react'
+import { apiCall } from '@/lib/api'
 
 type TabType = 'quotes' | 'orders'
 
@@ -33,7 +35,7 @@ export function useSalesData(tab: TabType, filter: SalesFilter, reloadKey: numbe
           params.append('rep_id', filter.repId)
         }
 
-        const res = await fetch(`http://localhost:4000/api/sales/${tab}?` + params.toString(), {
+        const res = await fetch(`${getApiBaseUrl()}/api/sales/${tab}?` + params.toString(), {
           credentials: 'include',
           signal: controller.signal
         })

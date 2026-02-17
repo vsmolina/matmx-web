@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import toast from 'react-hot-toast'
 import { useUser } from '@/context/UserContext'
+import { apiCall } from '@/lib/api'
 import { 
   ClipboardList, 
   Calendar, 
@@ -43,9 +44,7 @@ export default function TaskDialog({
 
   useEffect(() => {
     if (user?.role === 'super_admin') {
-      fetch('http://localhost:4000/api/users?role=sales_rep', {
-        credentials: 'include'
-      })
+      apiCall('/api/users?role=sales_rep')
         .then(res => res.json())
         .then(data => setSalesReps(data.users || []))
         .catch(console.error)
@@ -61,9 +60,8 @@ export default function TaskDialog({
 
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:4000/api/crm/tasks', {
+      const res = await apiCall('/api/crm/tasks', { 
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customer_id: customerId,

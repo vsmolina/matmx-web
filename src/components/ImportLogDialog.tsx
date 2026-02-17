@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { format } from 'date-fns'
 import { FileText, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 interface ImportLog {
   id: number
@@ -46,9 +47,7 @@ export default function ImportLogDialog() {
       if (searchUser) params.append('user', searchUser)
       if (searchDate) params.append('date', searchDate)
 
-      const res = await fetch(`http://localhost:4000/api/inventory/imports?${params.toString()}`, {
-        credentials: 'include',
-      })
+      const res = await apiCall(`/api/inventory/imports?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch logs')
       const data = await res.json()
       setLogs(data.logs)

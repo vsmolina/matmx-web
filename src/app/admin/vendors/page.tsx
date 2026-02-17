@@ -8,6 +8,7 @@ import { useUser } from '@/context/UserContext'
 import VendorCreateModal from '@/components/VendorCreateModal'
 import AdminGuard from '@/components/AdminGuard'
 import { Skeleton } from '@/components/ui/skeleton'
+import { apiCall } from '@/lib/api'
 import { 
   Store, 
   Mail, 
@@ -17,8 +18,10 @@ import {
   Search,
   Building2,
   TrendingUp,
-  Users
+  Users,
+  Trash2
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Vendor {
   id: number
@@ -52,9 +55,7 @@ export default function VendorsPage() {
     loadingRef.current = true
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:4000/api/vendors', {
-        credentials: 'include'
-      })
+      const res = await apiCall('/api/vendors')
       const data = await res.json()
       setVendors(data.vendors || [])
       setFiltered(data.vendors || [])
@@ -67,6 +68,19 @@ export default function VendorsPage() {
       setLoading(false)
     }
   }, [user])
+
+  const handleDeleteVendor = async (vendorId: number, vendorName: string) => {
+    if (!confirm(`Are you sure you want to delete vendor "${vendorName}"? This cannot be undone.`)) return
+    try {
+      const res = await apiCall(`/api/vendors/${vendorId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      toast.success('Vendor deleted')
+      setVendors(prev => prev.filter(v => v.id !== vendorId))
+      setFiltered(prev => prev.filter(v => v.id !== vendorId))
+    } catch (err) {
+      toast.error('Failed to delete vendor')
+    }
+  }
 
   const handleVendorUpdate = useCallback(() => {
     if (!loadingRef.current) {
@@ -112,7 +126,7 @@ export default function VendorsPage() {
     )
   }
 
-  const totalProducts = vendors.reduce((sum, v) => sum + v.product_count, 0)
+  const totalProducts = vendors.reduce((sum, v) => sum + Number(v.product_count), 0)
   const activeVendors = vendors.filter(v => v.product_count > 0).length
 
   return (
@@ -296,7 +310,7 @@ export default function VendorsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-4 space-x-1">
                         <Button
                           variant="outline"
                           size="sm"
@@ -304,6 +318,9 @@ export default function VendorsPage() {
                           className="border-gray-300 hover:border-purple-400 hover:text-purple-600 transition-colors"
                         >
                           View Details
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-800 hover:bg-red-50" onClick={() => handleDeleteVendor(v.id, v.name)}>
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </td>
                     </tr>

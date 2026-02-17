@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
+import { apiCall } from '@/lib/api'
 
 interface Props {
   productId: number
@@ -24,9 +25,7 @@ export default function ProductDetailsModal({ productId, trigger }: Props) {
   const fetchProduct = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/inventory/${productId}`, {
-        credentials: 'include'
-      })
+      const res = await apiCall(`/api/inventory/${productId}`)
       const data = await res.json()
       setProduct(data.product)
     } catch (err) {
@@ -38,9 +37,7 @@ export default function ProductDetailsModal({ productId, trigger }: Props) {
 
   const fetchBarcode = async () => {
     try {
-      const res = await fetch(`http://localhost:4000/api/inventory/${productId}/barcode.png`, {
-        credentials: 'include'
-      })
+      const res = await apiCall(`/api/inventory/${productId}/barcode.png`)
       if (res.ok) {
         const data = await res.json()
         setBarcodeDataUrl(data.dataUrl)

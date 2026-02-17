@@ -1,17 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Product } from '@/types/ProductTypes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import toast from 'react-hot-toast'
 import LabelPrintDialog from './LabelPrintDialog'
+import { apiCall } from '@/lib/api'
 
 interface ReceivingFormProps {
   product: Product
   onSubmitted?: () => void
+}
+
+interface Warehouse {
+  id: number
+  name: string
+  code: string
+  location: string
+  is_active: boolean
 }
 
 export default function ReceivingForm({ product, onSubmitted }: ReceivingFormProps) {
@@ -20,6 +36,32 @@ export default function ReceivingForm({ product, onSubmitted }: ReceivingFormPro
   const [loading, setLoading] = useState(false)
   const [showPrintDialog, setShowPrintDialog] = useState(false)
   const [hasReceived, setHasReceived] = useState(false) // ✅ prevent double update
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([])
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('')
+  const [loadingWarehouses, setLoadingWarehouses] = useState(true)
+
+  // Fetch warehouses on component mount
+  useEffect(() => {
+    const fetchWarehouses = async () => {
+      try {
+        const res = await apiCall('/api/warehouses')
+        if (res.ok) {
+          const data = await res.json()
+          setWarehouses(data.warehouses || [])
+          // Auto-select if only one warehouse
+          if (data.warehouses && data.warehouses.length === 1) {
+            setSelectedWarehouseId(data.warehouses[0].id.toString())
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch warehouses:', err)
+        toast.error('Failed to load warehouses')
+      } finally {
+        setLoadingWarehouses(false)
+      }
+    }
+    fetchWarehouses()
+  }, [])
 
   const handleReceive = async () => {
     if (hasReceived || quantity === '' || quantity <= 0) {
@@ -27,19 +69,29 @@ export default function ReceivingForm({ product, onSubmitted }: ReceivingFormPro
       return
     }
 
+    if (!selectedWarehouseId) {
+      toast.error('Please select a warehouse')
+      return
+    }
+
     setLoading(true)
 
     try {
-      const res = await fetch(`http://localhost:4000/api/inventory/${product.id}/receive`, {
+      const requestData = {
+        vendor_id: product.vendor_id,
+        warehouse_id: parseInt(selectedWarehouseId),
+        quantity,
+        reason: 'received',
+        note: note || 'Received via scan',
+      };
+
+      console.log('🔍 Frontend receiving request data:', requestData);
+      console.log('📦 Product data:', { id: product.id, sku: product.sku, vendor_id: product.vendor_id, vendor: product.vendor });
+
+      const res = await apiCall(`/api/inventory/${product.id}/receive`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vendor_id: product.vendor_id,
-          quantity,
-          reason: 'received',
-          note: note || 'Received via scan',
-        }),
+        body: JSON.stringify(requestData),
       })
 
       if (!res.ok) throw new Error('Failed to update inventory')
@@ -113,6 +165,32 @@ export default function ReceivingForm({ product, onSubmitted }: ReceivingFormPro
           </div>
         </div>
 
+        {/* Warehouse Selection */}
+        <div>
+          <Label className="text-sm font-medium text-gray-700 mb-2 block">
+            Warehouse <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={selectedWarehouseId}
+            onValueChange={setSelectedWarehouseId}
+            disabled={loadingWarehouses || hasReceived}
+          >
+            <SelectTrigger className="w-full h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl">
+              <SelectValue placeholder={loadingWarehouses ? "Loading warehouses..." : "Select a warehouse"} />
+            </SelectTrigger>
+            <SelectContent>
+              {warehouses.map((warehouse) => (
+                <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
+                  <div className="flex items-center justify-between w-full">
+                    <span>{warehouse.name}</span>
+                    <span className="text-xs text-gray-500 ml-2">({warehouse.code})</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Note Input - Expandable */}
         <div>
           <Label className="text-sm font-medium text-gray-700 mb-2 block">Note (Optional)</Label>
@@ -125,8 +203,8 @@ export default function ReceivingForm({ product, onSubmitted }: ReceivingFormPro
         </div>
 
         {/* Action Button - Large and Prominent */}
-        <Button 
-          disabled={loading || hasReceived} 
+        <Button
+          disabled={loading || hasReceived || loadingWarehouses || !selectedWarehouseId}
           onClick={handleReceive}
           className={`w-full h-14 text-lg font-semibold shadow-lg transition-all duration-200 ${
             loading || hasReceived 

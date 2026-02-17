@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Mail } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 interface Props {
   orderId: number
@@ -32,9 +33,8 @@ export default function SendOrderEmailButton({ orderId, customerEmail }: Props) 
     }
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:4000/api/email/send`, {
+      const res = await apiCall('/api/email/send', { 
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: customerEmail,

@@ -3,14 +3,15 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import CreateCustomerDialog from '@/components/CreateCustomerDialog'
 import ViewLogDialog from '@/components/ViewLogDialog'
 import AdminLogDialog from '@/components/AdminLogDialog'
 import TaskDialog from './TaskDialog'
+import { apiCall } from '@/lib/api'
 
 export default function CustomerTable() {
-  const [customers, setCustomers] = useState([])
+  const [customers, setCustomers] = useState<any[]>([])
   const [showCreate, setShowCreate] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
   const [openTaskDialog, setOpenTaskDialog] = useState(false)
@@ -24,12 +25,12 @@ export default function CustomerTable() {
   const [logLoading, setLogLoading] = useState(false)
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/crm', { credentials: 'include' })
+    apiCall('/api/crm')
       .then(res => res.json())
       .then(data => setCustomers(data.customers))
       .catch(console.error)
 
-    fetch('http://localhost:4000/api/me', { credentials: 'include' })
+    apiCall('/api/me')
       .then(res => res.json())
       .then(data => setUser(data.user))
       .catch(console.error)
@@ -38,18 +39,14 @@ export default function CustomerTable() {
   }, [])
 
   const fetchTaskCount = async () => {
-    const res = await fetch('http://localhost:4000/api/crm/tasks', {
-      credentials: 'include'
-    })
+    const res = await apiCall('/api/crm/tasks')
     const data = await res.json()
     setTaskCount(data?.tasks?.length || 0)
   }
 
   const fetchLogsForCustomer = async (customerId: number) => {
     setLogLoading(true)
-    const res = await fetch(`http://localhost:4000/api/crm/${customerId}/interactions`, {
-      credentials: 'include'
-    })
+    const res = await apiCall(`/api/crm/${customerId}/interactions`)
     const data = await res.json()
     setLogs(data.logs || [])
     setLogLoading(false)
@@ -70,6 +67,17 @@ export default function CustomerTable() {
   const handleOpenAdminLogDialog = (id: number) => {
     setAdminLogCustomerId(id)
     setOpenAdminLog(true)
+  }
+
+  const handleDeleteCustomer = async (customerId: number, customerName: string) => {
+    if (!confirm(`Are you sure you want to delete customer "${customerName}"? This cannot be undone.`)) return
+    try {
+      const res = await apiCall(`/api/crm/customers/${customerId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      setCustomers((prev: any[]) => prev.filter((c: any) => c.id !== customerId))
+    } catch (err) {
+      alert('Failed to delete customer')
+    }
   }
 
   return (
@@ -119,6 +127,11 @@ export default function CustomerTable() {
                       {user?.role === 'super_admin' && (
                         <Button size="sm" variant="outline" onClick={() => handleOpenAdminLogDialog(cust.id)}>Admin Logs</Button>
                       )}
+                      {user?.role === 'super_admin' && (
+                        <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-800 hover:bg-red-50" onClick={() => handleDeleteCustomer(cust.id, cust.name)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </td>
                   <td className="p-2 whitespace-nowrap">
@@ -156,6 +169,11 @@ export default function CustomerTable() {
               </Link>
               {user?.role === 'super_admin' && (
                 <Button size="sm" variant="outline" onClick={() => handleOpenAdminLogDialog(cust.id)}>Admin Logs</Button>
+              )}
+              {user?.role === 'super_admin' && (
+                <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-800 hover:bg-red-50" onClick={() => handleDeleteCustomer(cust.id, cust.name)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               )}
             </div>
           </div>

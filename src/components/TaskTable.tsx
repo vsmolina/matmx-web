@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Users, Plus, Clock, CheckCircle, User, Calendar } from 'lucide-react'
+import { apiCall } from '@/lib/api'
 
 export default function TaskTable({
   customer,
@@ -26,10 +27,7 @@ export default function TaskTable({
   const handleComplete = async (taskId: number) => {
     setLoadingId(taskId)
     try {
-      const res = await fetch(`http://localhost:4000/api/crm/tasks/${taskId}/complete`, {
-        method: 'POST',
-        credentials: 'include'
-      })
+      const res = await apiCall(`/api/crm/tasks/${taskId}/complete`, { method: 'POST' })
       if (!res.ok) throw new Error('Failed to mark complete')
       toast.success('Task marked as completed')
       onTaskUpdate?.()

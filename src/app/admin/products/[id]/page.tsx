@@ -1,4 +1,5 @@
 'use client'
+import { getApiBaseUrl } from '@/lib/api'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -9,6 +10,7 @@ import VendorTermsModal from '@/components/VendorTermsModal'
 import { Input } from '@/components/ui/input'
 import { Check, X, Edit2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 import {
   Dialog,
   DialogContent,
@@ -28,10 +30,9 @@ function BarcodeImage({ productId }: { productId: number }) {
     loadingRef.current = true
     setLoading(true)
     try {
-      const response = await fetch(`http://localhost:4000/api/inventory/${productId}/barcode.png`, {
-        credentials: 'include',
+      const response = await apiCall(`/api/inventory/${productId}/barcode.png`, { 
         headers: {
-          'Accept': 'image/png',
+          'Accept': 'image/png' 
         }
       })
       
@@ -240,9 +241,7 @@ export default function ProductProfilePage() {
     setLoading(true)
     try {
       // First, try to get the product by ID to get the SKU
-      const productRes = await fetch(`http://localhost:4000/api/inventory/${productId}`, {
-        credentials: 'include'
-      })
+      const productRes = await apiCall(`/api/inventory/${productId}`)
       
       if (!productRes.ok) {
         throw new Error('Product not found')
@@ -252,9 +251,7 @@ export default function ProductProfilePage() {
       const sku = productData.product.sku
       
       // Then get the unified product profile by SKU
-      const profileRes = await fetch(`http://localhost:4000/api/inventory/profile/sku/${sku}`, {
-        credentials: 'include'
-      })
+      const profileRes = await apiCall(`/api/inventory/profile/sku/${sku}`)
       
       if (!profileRes.ok) {
         throw new Error('Product profile not found')
@@ -286,7 +283,7 @@ export default function ProductProfilePage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:4000/api/inventory/profile/sku/${product.sku}`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/inventory/profile/sku/${product.sku}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -314,7 +311,7 @@ export default function ProductProfilePage() {
     if (!priceUpdateConfirm || !product) return
 
     try {
-      const response = await fetch(`http://localhost:4000/api/inventory/profile/sku/${product.sku}`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/inventory/profile/sku/${product.sku}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -347,10 +344,9 @@ export default function ProductProfilePage() {
     try {
       const formData = new FormData()
       formData.append('image', file)
-      const res = await fetch(`http://localhost:4000/api/inventory/${product.id}/image`, {
+      const res = await apiCall(`/api/inventory/${product.id}/image`, { 
         method: 'POST',
-        credentials: 'include',
-        body: formData,
+        body: formData 
       })
       if (res.ok) {
         await fetchProductProfile()

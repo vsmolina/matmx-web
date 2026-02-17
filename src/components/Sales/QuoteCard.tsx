@@ -6,6 +6,7 @@ import SendQuoteEmailButton from './SendQuoteEmailButton'
 import GenerateOrViewPDFButton from './GenerateOrViewPDFButton'
 import { Quote } from '@/types/QuoteTypes'
 import toast from 'react-hot-toast'
+import { apiCall } from '@/lib/api'
 
 interface QuoteCardProps {
   quote: Quote
@@ -22,10 +23,7 @@ export default function QuoteCard({ quote, onView, onClose, onConvert }: QuoteCa
 
   const handleConvert = async () => {
     try {
-      const res = await fetch(`http://localhost:4000/api/sales/quotes/${quote.id}/convert`, {
-        method: 'POST',
-        credentials: 'include'
-      })
+      const res = await apiCall(`/api/sales/quotes/${quote.id}/convert`, { method: 'POST' })
       if (!res.ok) throw new Error()
       toast.success('Quote converted to order')
       onConvert?.(quote.id)
@@ -47,10 +45,10 @@ export default function QuoteCard({ quote, onView, onClose, onConvert }: QuoteCa
           </div>
         </div>
         <div className={`text-xs px-2 py-1 rounded-full font-medium ${
-          quote.status === 'sent' ? 'bg-blue-100 text-blue-700' :
-          quote.status === 'draft' ? 'bg-gray-100 text-gray-700' :
-          quote.status === 'expired' ? 'bg-red-100 text-red-700' :
-          quote.status === 'converted' ? 'bg-green-100 text-green-700' :
+          (quote as any).status === 'sent' ? 'bg-blue-100 text-blue-700' :
+          (quote as any).status === 'draft' ? 'bg-gray-100 text-gray-700' :
+          (quote as any).status === 'expired' ? 'bg-red-100 text-red-700' :
+          (quote as any).status === 'converted' ? 'bg-green-100 text-green-700' :
           'bg-gray-100 text-gray-700'
         }`}>
           {quote.status}
