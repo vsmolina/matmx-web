@@ -249,15 +249,22 @@ export default function ProductProfilePage() {
   } | null>(null)
   
   const loadingRef = useRef(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchProductProfile = useCallback(async () => {
     if (loadingRef.current || !productId) return
     
+    // Cancel any in-flight requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+    
     loadingRef.current = true
     setLoading(true)
     try {
-      // First, try to get the product by ID to get the SKU
-      const productRes = await apiCall(`/api/inventory/${productId}`)
+      const productRes = await apiCall(`/api/inventory/${productId}`, { signal: controller.signal })
       
       if (!productRes.ok) {
         throw new Error('Product not found')
@@ -266,23 +273,28 @@ export default function ProductProfilePage() {
       const productData = await productRes.json()
       const sku = productData.product.sku
       
-      // Then get the unified product profile by SKU
-      const profileRes = await apiCall(`/api/inventory/profile/sku/${sku}`)
+      const profileRes = await apiCall(`/api/inventory/profile/sku/${sku}`, { signal: controller.signal })
       
       if (!profileRes.ok) {
         throw new Error('Product profile not found')
       }
       
       const data = await profileRes.json()
-      setProduct(data.product)
-      setVendorInfos(data.vendors)
-      setWarehouses(data.warehouses || [])
-      setWarehouseStock(data.warehouse_stock || [])
-    } catch (err) {
-      console.error('Error fetching product profile:', err)
+      if (!controller.signal.aborted) {
+        setProduct(data.product)
+        setVendorInfos(data.vendors)
+        setWarehouses(data.warehouses || [])
+        setWarehouseStock(data.warehouse_stock || [])
+      }
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Error fetching product profile:', err)
+      }
     } finally {
       loadingRef.current = false
-      setLoading(false)
+      if (!controller.signal.aborted) {
+        setLoading(false)
+      }
     }
   }, [productId])
 
@@ -387,6 +399,12 @@ export default function ProductProfilePage() {
   useEffect(() => {
     if (user && productId && !loadingRef.current) {
       fetchProductProfile()
+    }
+    return () => {
+      // Cancel in-flight requests when component unmounts (navigating away)
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
     }
   }, [user, productId, fetchProductProfile])
 

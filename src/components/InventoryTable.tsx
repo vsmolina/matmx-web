@@ -141,11 +141,20 @@ export default function InventoryTable() {
   }
 
 
+  const abortControllerRef = useRef<AbortController | null>(null)
+
   const fetchProducts = useCallback(async () => {
     // Prevent multiple simultaneous requests
     if (loadingRef.current) {
       return
     }
+    
+    // Cancel any in-flight requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
     
     loadingRef.current = true
     setLoadingData(true)
@@ -155,7 +164,7 @@ export default function InventoryTable() {
         url += `?warehouse_id=${selectedWarehouse}`
       }
       
-      const res = await apiCall(url)
+      const res = await apiCall(url, { signal: controller.signal })
       const data = await res.json()
       
       // Handle different possible response structures
@@ -174,14 +183,18 @@ export default function InventoryTable() {
       // Create merged products
       const merged = createMergedProducts(products)
       setMergedProducts(merged)
-    } catch (err) {
-      console.error('Error fetching inventory:', err)
-      setRows([])
-      setFiltered([])
-      setMergedProducts([])
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.error('Error fetching inventory:', err)
+        setRows([])
+        setFiltered([])
+        setMergedProducts([])
+      }
     } finally {
       loadingRef.current = false
-      setLoadingData(false)
+      if (!controller.signal.aborted) {
+        setLoadingData(false)
+      }
     }
   }, [selectedWarehouse])
 
@@ -274,6 +287,11 @@ export default function InventoryTable() {
     if (!loading && user) {
       fetchProducts()
       fetchWarehouses()
+    }
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
     }
   }, [loading, user, fetchProducts, fetchWarehouses])
 
