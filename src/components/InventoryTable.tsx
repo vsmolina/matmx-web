@@ -93,6 +93,12 @@ interface MergedProduct {
     quantity: number
     vendor_price: number
   }>
+  warehouses: Array<{
+    warehouse_id: number | null
+    warehouse_name: string
+    warehouse_code: string
+    quantity: number
+  }>
   quantity: number
   reorder_threshold: number
   category: string
@@ -202,8 +208,9 @@ export default function InventoryTable() {
           product_id: product.product_id,
           name: product.name,
           sku: product.sku,
-          vendor: product.vendor,
+          vendor: product.vendor || '—',
           vendors: [],
+          warehouses: [],
           quantity: 0,
           reorder_threshold: product.reorder_threshold,
           category: product.category,
@@ -214,10 +221,25 @@ export default function InventoryTable() {
       const mergedProduct = productMap.get(product.sku)!
       mergedProduct.vendors.push({
         vendor_id: product.vendor_id,
-        vendor_name: product.vendor,
+        vendor_name: product.vendor || '—',
         quantity: product.quantity,
         vendor_price: product.vendor_price
       })
+      
+      // Track warehouses (deduplicate by warehouse_id)
+      const whId = product.warehouse_id ?? null
+      const existingWh = mergedProduct.warehouses.find(w => w.warehouse_id === whId)
+      if (existingWh) {
+        existingWh.quantity += product.quantity
+      } else {
+        mergedProduct.warehouses.push({
+          warehouse_id: whId,
+          warehouse_name: product.warehouse_name || 'Unassigned',
+          warehouse_code: product.warehouse_code || 'N/A',
+          quantity: product.quantity
+        })
+      }
+      
       mergedProduct.quantity += product.quantity
     })
     
@@ -903,13 +925,13 @@ export default function InventoryTable() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+                  <td colSpan={10} className="px-4 py-6 text-center text-gray-500">
                     No matching products found.
                   </td>
                 </tr>
               )
             ) : (
-              getFilteredMergedProducts().length > 0 ? getFilteredMergedProducts().map((row) => (
+              getFilteredMergedProducts().length > 0 ? getFilteredMergedProducts().map((row: MergedProduct) => (
                 <tr
                   key={row.product_id}
                   className={clsx(
@@ -919,6 +941,29 @@ export default function InventoryTable() {
                 >
                   <td className="px-4 py-2">{row.name}</td>
                   <td className="px-4 py-2">{row.sku}</td>
+                  <td className="px-4 py-2">
+                    {row.warehouses.length > 1 ? (
+                      <div className="space-y-1">
+                        {row.warehouses.map((wh, i) => (
+                          <div key={wh.warehouse_id ?? `unassigned-${i}`} className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-gray-400" />
+                            <span className="text-xs">{wh.warehouse_code}</span>
+                            <span className="text-xs text-gray-400">({wh.quantity})</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : row.warehouses.length === 1 ? (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3 text-gray-400" />
+                        <span className="text-xs">{row.warehouses[0].warehouse_code}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3 text-gray-400" />
+                        <span className="text-xs">N/A</span>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-2">
                     {row.vendors.length > 1 ? (
                       <div className="relative dropdown-container">
@@ -1042,7 +1087,7 @@ export default function InventoryTable() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+                  <td colSpan={10} className="px-4 py-6 text-center text-gray-500">
                     No matching products found.
                   </td>
                 </tr>
