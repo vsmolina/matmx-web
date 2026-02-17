@@ -516,7 +516,7 @@ export default function InventoryTable() {
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-lg text-gray-900">{row.name}</h3>
+                    <h3 className="font-semibold text-lg text-gray-900"><button onClick={() => router.push(`/admin/products/${row.product_id}`)} className="text-left hover:text-blue-600 hover:underline transition-colors cursor-pointer">{row.name}</button></h3>
                     <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -700,7 +700,7 @@ export default function InventoryTable() {
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-lg text-gray-900">{row.name}</h3>
+                    <h3 className="font-semibold text-lg text-gray-900"><button onClick={() => router.push(`/admin/products/${row.product_id}`)} className="text-left hover:text-blue-600 hover:underline transition-colors cursor-pointer">{row.name}</button></h3>
                     <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -877,7 +877,7 @@ export default function InventoryTable() {
                     row.quantity < row.reorder_threshold ? 'bg-red-50' : ''
                   )}
                 >
-                  <td className="px-4 py-2">{row.name}</td>
+                  <td className="px-4 py-2"><button onClick={() => router.push(`/admin/products/${row.product_id}`)} className="text-left hover:text-blue-600 hover:underline transition-colors cursor-pointer">{row.name}</button></td>
                   <td className="px-4 py-2">{row.sku}</td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-1">
@@ -964,7 +964,7 @@ export default function InventoryTable() {
                     row.quantity < row.reorder_threshold ? 'bg-red-50' : ''
                   )}
                 >
-                  <td className="px-4 py-2">{row.name}</td>
+                  <td className="px-4 py-2"><button onClick={() => router.push(`/admin/products/${row.product_id}`)} className="text-left hover:text-blue-600 hover:underline transition-colors cursor-pointer">{row.name}</button></td>
                   <td className="px-4 py-2">{row.sku}</td>
                   <td className="px-4 py-2">
                     {row.warehouses.length > 1 ? (
