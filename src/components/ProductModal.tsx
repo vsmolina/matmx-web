@@ -92,25 +92,29 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
   const [barcodeDataUrl, setBarcodeDataUrl] = useState<string | null>(null)
   const [currentStock, setCurrentStock] = useState<number>(0)
   const [isGeneratingBarcode, setIsGeneratingBarcode] = useState<boolean>(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [vendorsLoaded, setVendorsLoaded] = useState(false)
   const [priceConflict, setPriceConflict] = useState<{
     show: boolean
     data: any
     payload: any
   }>({ show: false, data: null, payload: null })
 
-  // Load vendors
+  // Load vendors only when dialog opens
   useEffect(() => {
+    if (!dialogOpen || vendorsLoaded) return
     async function fetchVendors() {
       try {
         const res = await apiCall('/api/vendors')
         const data = await res.json()
         setVendors(data.vendors || [])
+        setVendorsLoaded(true)
       } catch (err) {
         console.error('Failed to load vendors', err)
       }
     }
     fetchVendors()
-  }, [])
+  }, [dialogOpen, vendorsLoaded])
 
   // Fetch barcode for edit mode
   const fetchBarcode = async (productId: number) => {
@@ -398,7 +402,7 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
 
   return (
     <>
-      <Dialog>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[95vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full mx-auto">
         <DialogHeader className="pb-4">

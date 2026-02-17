@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -45,12 +45,12 @@ export default function ImportExcelModal({ onSuccess }: { onSuccess: () => void 
   const [fileType, setFileType] = useState<'csv' | 'excel'>('excel')
 
   // Fetch vendors and warehouses when modal opens
-  useState(() => {
+  useEffect(() => {
     if (open) {
       fetchVendors()
       fetchWarehouses()
     }
-  })
+  }, [open])
 
   const fetchVendors = async () => {
     try {
