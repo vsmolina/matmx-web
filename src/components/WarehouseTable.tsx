@@ -23,6 +23,7 @@ interface Warehouse {
 
 export default function WarehouseTable() {
   const { user } = useUser()
+  const isSalesRep = user?.role === 'sales_rep'
   const router = useRouter()
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
   const [loading, setLoading] = useState(true)
@@ -187,7 +188,7 @@ export default function WarehouseTable() {
               </div>
 
               {/* Value */}
-              <div className="mt-3 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-100 rounded-lg p-3">
+              {!isSalesRep && <div className="mt-3 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-100 rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1">
                   <DollarSign className="h-4 w-4 text-emerald-600" />
                   <span className="text-xs text-emerald-700 font-medium">Total Value</span>
@@ -195,7 +196,7 @@ export default function WarehouseTable() {
                 <span className="text-xl font-bold text-emerald-700">
                   {formatCurrency(warehouse.inventory_value)}
                 </span>
-              </div>
+              </div>}
             </div>
           ))}
         </div>
@@ -218,9 +219,9 @@ export default function WarehouseTable() {
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Total Items
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {!isSalesRep && <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Inventory Value
-              </th>
+              </th>}
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
@@ -259,14 +260,14 @@ export default function WarehouseTable() {
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   <span className="text-sm text-gray-900">{formatNumber(warehouse.total_items)}</span>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-right">
+                {!isSalesRep && <td className="px-4 py-3 whitespace-nowrap text-right">
                   <div className="flex items-center justify-end gap-1">
                     <DollarSign className="h-4 w-4 text-green-600" />
                     <span className="text-sm font-medium text-gray-900">
                       {formatCurrency(warehouse.inventory_value)}
                     </span>
                   </div>
-                </td>
+                </td>}
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
