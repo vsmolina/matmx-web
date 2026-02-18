@@ -397,7 +397,7 @@ export default function InventoryTable() {
         </div>
         
         <div className="grid grid-cols-2 gap-3">
-          <ProductModal
+          {!isSalesRep && <ProductModal
             mode="add"
             onSave={handleProductUpdate}
             trigger={
@@ -405,14 +405,14 @@ export default function InventoryTable() {
                 Add Product
               </Button>
             }
-          />
+          />}
           <ExportCSVButton />
         </div>
         
-        <div className="grid grid-cols-2 gap-3">
+        {!isSalesRep && <div className="grid grid-cols-2 gap-3">
           <ImportExcelModal onSuccess={handleProductUpdate} />
           {user?.role === 'super_admin' && <ImportLogDialog />}
-        </div>
+        </div>}
       </div>
 
       {/* Desktop Header */}
@@ -475,7 +475,7 @@ export default function InventoryTable() {
             
             {/* Action Buttons Row */}
             <div className="flex flex-wrap justify-center gap-2">
-              <ProductModal
+              {!isSalesRep && <ProductModal
                 mode="add"
                 onSave={handleProductUpdate}
                 trigger={
@@ -483,9 +483,9 @@ export default function InventoryTable() {
                     Add Product
                   </Button>
                 }
-              />
+              />}
               <ExportCSVButton />
-              <ImportExcelModal onSuccess={handleProductUpdate} />
+              {!isSalesRep && <ImportExcelModal onSuccess={handleProductUpdate} />}
               {user?.role === 'super_admin' && <ImportLogDialog />}
             </div>
           </div>
