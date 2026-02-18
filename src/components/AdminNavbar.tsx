@@ -84,7 +84,6 @@ export default function AdminNavbar() {
       { href: '/admin/anodizing', label: 'Anodizing' },
       { href: '/admin/crm', label: 'Customers' },
       { href: '/admin/sales', label: 'Quotes & Orders' },
-      { href: '/admin/receiving', label: 'Receiving'},
     ],
     warehouse_worker: [
       { href: '/admin/receiving', label: 'Receiving'},

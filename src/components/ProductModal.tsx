@@ -54,9 +54,10 @@ interface Props {
   defaultValues?: Product
   onSave: () => void
   trigger: React.ReactNode
+  readOnly?: boolean
 }
 
-export default function ProductModal({ mode, defaultValues, onSave, trigger }: Props) {
+export default function ProductModal({ mode, defaultValues, onSave, trigger, readOnly = false }: Props) {
   const {
     register,
     handleSubmit,
@@ -414,16 +415,17 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
             </div>
             <div>
               <DialogTitle className="text-xl font-bold text-gray-900">
-                {mode === 'add' ? 'Add New Product' : 'Edit Product'}
+                {readOnly ? 'Product Details' : mode === 'add' ? 'Add New Product' : 'Edit Product'}
               </DialogTitle>
               <p className="text-sm text-gray-600">
-                {mode === 'add' ? 'Create a new product with vendor information' : 'Update product and vendor details'}
+                {readOnly ? 'Product and Vendor Details' : mode === 'add' ? 'Create a new product with vendor information' : 'Update product and vendor details'}
               </p>
             </div>
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+        <form onSubmit={readOnly ? (e) => e.preventDefault() : handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+          <fieldset disabled={readOnly} className="space-y-4 sm:space-y-6">
           {/* Basic Product Information */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
             <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
@@ -538,7 +540,7 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
                         : 'bg-white border-gray-200'
                     }`}
                   />
-                  {mode === 'edit' && defaultValues?.id && defaultValues?.vendor_id && (
+                  {mode === 'edit' && !readOnly && defaultValues?.id && defaultValues?.vendor_id && (
                     <AdjustInventoryModal
                       productId={defaultValues.id}
                       vendorId={defaultValues.vendor_id}
@@ -638,8 +640,10 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
             </div>
           </div>
 
+          </fieldset>
+
           {/* Submit Button */}
-          <div className="pt-4">
+          {!readOnly && <div className="pt-4">
             <Button 
               type="submit" 
               disabled={isSubmitting}
@@ -659,7 +663,7 @@ export default function ProductModal({ mode, defaultValues, onSave, trigger }: P
                 </div>
               )}
             </Button>
-          </div>
+          </div>}
         </form>
 
         {/* Barcode Preview */}

@@ -613,8 +613,8 @@ export default function InventoryTable() {
               </div>
               
               <div className="space-y-3 pt-3 border-t border-gray-100">
-                <div className="grid grid-cols-3 gap-2">
-                  <AdjustInventoryModal
+                <div className={`grid ${isSalesRep ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
+                  {!isSalesRep && <AdjustInventoryModal
                     productId={row.product_id}
                     vendorId={row.vendor_id}
                     vendorName={row.vendor}
@@ -630,7 +630,7 @@ export default function InventoryTable() {
                         <Settings className="h-4 w-4" />
                       </Button>
                     }
-                  />
+                  />}
                   <ProductDetailsButton
                     productId={row.product_id}
                     initialData={{
@@ -642,6 +642,7 @@ export default function InventoryTable() {
                       quantity: row.quantity
                     }}
                     onSave={handleProductUpdate}
+                    readOnly={isSalesRep}
                     trigger={
                       <Tooltip content="Product Details" delay={750}>
                         <Button 
@@ -889,7 +890,7 @@ export default function InventoryTable() {
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-1">
-                      <AdjustInventoryModal
+                      {!isSalesRep && <AdjustInventoryModal
                         productId={row.product_id}
                         vendorId={row.vendor_id}
                         vendorName={row.vendor}
@@ -900,7 +901,7 @@ export default function InventoryTable() {
                             <Settings className="h-4 w-4" />
                           </Button>
                         }
-                      />
+                      />}
                       <ProductDetailsButton
                         productId={row.product_id}
                         initialData={{
@@ -912,6 +913,7 @@ export default function InventoryTable() {
                           quantity: row.quantity
                         }}
                         onSave={handleProductUpdate}
+                        readOnly={isSalesRep}
                         trigger={
                           <Tooltip content="Product Details" delay={750}>
                             <Button variant="outline" size="sm" className="h-8 w-8 p-0">
@@ -1069,7 +1071,7 @@ export default function InventoryTable() {
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-1">
-                      <AdjustInventoryModal
+                      {!isSalesRep && <AdjustInventoryModal
                         productId={row.product_id}
                         vendorId={row.vendors[0]?.vendor_id ?? 0}
                         vendorName={row.vendors[0]?.vendor_name || '—'}
@@ -1086,7 +1088,7 @@ export default function InventoryTable() {
                             <Settings className="h-4 w-4" />
                           </Button>
                         }
-                      />
+                      />}
                       <ProductDetailsButton
                         productId={row.product_id}
                         initialData={{
@@ -1098,6 +1100,7 @@ export default function InventoryTable() {
                           quantity: row.quantity
                         }}
                         onSave={handleProductUpdate}
+                        readOnly={isSalesRep}
                         trigger={
                           <Tooltip content="Product Details" delay={750}>
                             <Button variant="outline" size="sm" className="h-8 w-8 p-0">

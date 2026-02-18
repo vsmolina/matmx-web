@@ -17,9 +17,10 @@ interface Props {
   }
   onSave: () => void
   trigger?: React.ReactNode
+  readOnly?: boolean
 }
 
-export default function ProductDetailsButton({ productId, initialData, onSave, trigger }: Props) {
+export default function ProductDetailsButton({ productId, initialData, onSave, trigger, readOnly = false }: Props) {
   const [productDetails, setProductDetails] = useState<any>(null)
 
   const handleClick = async () => {
@@ -59,6 +60,7 @@ export default function ProductDetailsButton({ productId, initialData, onSave, t
     <ProductModal
       mode="edit"
       defaultValues={productDetails}
+      readOnly={readOnly}
       onSave={() => {
         onSave()
         setProductDetails(null)
